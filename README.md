@@ -10,10 +10,10 @@ The project is focused on users in Kigali, Rwanda. It is intended to provide inf
 | --- | --- |
 | Dorcase Lesly | Project Manager |
 | Tchachum Stephane | Lead Developer |
-| Tasnim Rosa | Designer |
-| Annabel Kemasuode | Database and Planning |
-| Ephraim Mulilo | Secretary |
-| Olivier Migisha | Research Lead |
+| Tasnim Rosa | UI/UX Engineer |
+| Annabel Kemasuode | Frontent Developer |
+| Ephraim Mulilo | Backend Developer |
+| Olivier Migisha | Backend Developer |
 
 ## Planned Features
 
