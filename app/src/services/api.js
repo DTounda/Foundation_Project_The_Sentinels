@@ -29,3 +29,10 @@ export async function login(email, password) {
 
 export const register = (name, email, password) =>
   request('/auth/register', { method: 'POST', body: { name, email, password } });
+// TODO: confirm paths and field names in docs/API.md
+export const getIngredients = () => request('/ingredients');
+export const getAllergies = () => request('/allergies', { auth: true });
+export const addAllergy = (ingredient_id, severity) =>
+  request('/allergies', { method: 'POST', auth: true, body: { ingredient_id, severity } });
+export const deleteAllergy = (id) =>
+  request(`/allergies/${id}`, { method: 'DELETE', auth: true });
