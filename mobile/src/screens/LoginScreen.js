@@ -4,7 +4,7 @@ import { login, register } from '../services/api';
 
 export default function LoginScreen({ navigation }) {
   const [isRegister, setIsRegister] = useState(false);
-  const [name, setName] = useState('');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -12,15 +12,19 @@ export default function LoginScreen({ navigation }) {
 
   async function submit() {
     setError('');
-    if (!email || !password || (isRegister && !name)) {
+    if (!email.trim() || !password || (isRegister && !fullName.trim())) {
       setError('Please fill in all fields.');
+      return;
+    }
+    if (isRegister && password.length < 8) {
+      setError('Password must be at least 8 characters.');
       return;
     }
     setLoading(true);
     try {
-      if (isRegister) await register(name, email, password);
-      await login(email, password);
-      navigation.replace('AllergyProfile'); // TODO: match Dorcase's route name
+      if (isRegister) await register(fullName.trim(), email.trim(), password);
+      else await login(email.trim(), password);
+      navigation.replace('AllergyProfile'); // TODO: match the route name in Dorcase's navigation
     } catch (e) {
       setError(e.message);
     } finally {
@@ -32,11 +36,11 @@ export default function LoginScreen({ navigation }) {
     <View style={s.container}>
       <Text style={s.title}>{isRegister ? 'Create account' : 'Log in'}</Text>
       {isRegister && (
-        <TextInput style={s.input} placeholder="Name" value={name} onChangeText={setName} />
+        <TextInput style={s.input} placeholder="Full name" value={fullName} onChangeText={setFullName} />
       )}
       <TextInput style={s.input} placeholder="Email" autoCapitalize="none"
         keyboardType="email-address" value={email} onChangeText={setEmail} />
-      <TextInput style={s.input} placeholder="Password" secureTextEntry
+      <TextInput style={s.input} placeholder="Password (min 8 characters)" secureTextEntry
         value={password} onChangeText={setPassword} />
       {!!error && <Text style={s.error}>{error}</Text>}
       <TouchableOpacity style={s.button} onPress={submit} disabled={loading}>
