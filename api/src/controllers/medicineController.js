@@ -1,22 +1,28 @@
-
 const { searchMedicineByName } = require("../services/medicineService");
 
-function searchMedicine(req, res) {
+async function searchMedicine(req, res) {
   const name = req.query.name;
 
-  if (!name || !name.trim()) {
+  if (typeof name !== "string" || !name.trim()) {
     return res.status(400).json({
       message: "Please provide a medicine name"
     });
   }
 
-  const medicines = searchMedicineByName(name.trim());
+  try {
+    const medicines = await searchMedicineByName(name.trim());
 
-  res.json({
-    message: "Medicine search completed",
-    results: medicines
-  });
+    return res.json({
+      message: "Medicine search completed",
+      results: medicines
+    });
+  } catch (error) {
+    console.error("Medicine search failed:", error.message);
+
+    return res.status(500).json({
+      message: "Unable to search medicines"
+    });
+  }
 }
 
 module.exports = { searchMedicine };
-
