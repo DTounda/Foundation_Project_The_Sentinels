@@ -36,3 +36,6 @@ export const addAllergy = (ingredient_id, severity) =>
   request('/allergies', { method: 'POST', auth: true, body: { ingredient_id, severity } });
 export const deleteAllergy = (id) =>
   request(`/allergies/${id}`, { method: 'DELETE', auth: true });
+// TODO: confirm path, field names, and whether login is required
+export const submitReport = (report) =>
+  request('/reports', { method: 'POST', body: report });
