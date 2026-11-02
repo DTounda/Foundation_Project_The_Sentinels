@@ -3,3 +3,6 @@ node_modules/
 .expo/
 *.log
 .DS_Store
+
+# Local database backup
+medicheck_backup.sql

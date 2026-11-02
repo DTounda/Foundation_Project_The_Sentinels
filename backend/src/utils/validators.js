@@ -1,3 +1,4 @@
+
 const AppError = require('./AppError');
 
 const BARCODE_PATTERN = /^[A-Za-z0-9-]{4,50}$/;
@@ -14,6 +15,14 @@ function parseBarcode(value) {
     throw AppError.validation('barcode must be 4 to 50 letters, digits or dashes');
   }
   return barcode;
+}
+
+/** Validate a medicine search query. */
+function parseSearchQuery(value) {
+  if (typeof value !== 'string' || value.trim().length < 2) {
+    throw AppError.validation('search query must be at least 2 characters');
+  }
+  return value.trim();
 }
 
 /** Accepts 12, "12"; rejects 0, -1, 1.5, "abc". */
@@ -57,6 +66,7 @@ function parseSeverity(value) {
 
 module.exports = {
   parseBarcode,
+  parseSearchQuery,
   parsePositiveInt,
   parseEmail,
   parsePassword,

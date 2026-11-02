@@ -1,3 +1,4 @@
+
 /**
  * All SQL for medicines lives here. Always parameterised (?) to prevent SQL injection.
  * Rows are mapped to camelCase objects so the rest of the code never sees column names.
@@ -24,6 +25,19 @@ function createMedicineRepository(pool) {
         [barcode],
       );
       return rows.length ? mapMedicine(rows[0]) : null;
+    },
+
+    /** Find medicines whose names contain the search query. */
+    async searchByName(query) {
+      const [rows] = await pool.execute(
+        `SELECT medicine_id, name, manufacturer, registration_number, barcode, verified_status
+           FROM Medicines
+          WHERE name LIKE ?
+          ORDER BY name
+          LIMIT 20`,
+        [`%${query}%`],
+      );
+      return rows.map(mapMedicine);
     },
 
     async findById(id) {

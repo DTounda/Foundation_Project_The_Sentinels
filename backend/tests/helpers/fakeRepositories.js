@@ -1,3 +1,4 @@
+
 /**
  * In-memory repositories with the same methods as the MySQL ones.
  * They let us test the whole API (routes -> controllers -> services) without a database.
@@ -52,12 +53,21 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
   const allergies = [];
 
   const medicineRepository = {
+    async searchByName(query) {
+      const search = query.toLowerCase();
+      return medicines.filter((medicine) =>
+        medicine.name.toLowerCase().includes(search),
+      );
+    },
+
     async findByBarcode(barcode) {
       return medicines.find((m) => m.barcode === barcode) || null;
     },
+
     async findById(id) {
       return medicines.find((m) => m.id === id) || null;
     },
+
     async getIngredients(medicineId) {
       return (SAMPLE_MEDICINE_INGREDIENTS[medicineId] || []).map((id) =>
         SAMPLE_INGREDIENTS.find((i) => i.id === id),
