@@ -13,6 +13,7 @@ const { createRateLimiter, passThrough } = require('./middleware/rateLimit');
 function createApp({
   config = defaultConfig,
   checkDatabase = async () => true,
+  repositories = null,
   enableRateLimit = config.nodeEnv !== 'test',
 } = {}) {
   const app = express();
@@ -29,7 +30,7 @@ function createApp({
   const limiter = enableRateLimit
     ? createRateLimiter({ windowMs: 15 * 60 * 1000, limit: 300 })
     : passThrough;
-  app.use('/api/v1', limiter, buildRouter({ checkDatabase }));
+  app.use('/api/v1', limiter, buildRouter({ checkDatabase, repositories, config }));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

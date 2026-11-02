@@ -1,8 +1,13 @@
 const config = require('./config/env');
-const { checkDatabase, closePool } = require('./config/db');
+const { checkDatabase, closePool, getPool } = require('./config/db');
+const { createMysqlRepositories } = require('./repositories');
 const { createApp } = require('./app');
 
-const app = createApp({ config, checkDatabase });
+const app = createApp({
+  config,
+  checkDatabase,
+  repositories: createMysqlRepositories(getPool()),
+});
 
 const server = app.listen(config.port, () => {
   console.info(`MediCheck API listening on http://localhost:${config.port}/api/v1/health`);
