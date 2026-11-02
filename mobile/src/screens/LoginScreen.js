@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { login, register } from '../services/api';
 
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen({ navigation, route }) {
   const [isRegister, setIsRegister] = useState(false);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -24,7 +24,7 @@ export default function LoginScreen({ navigation }) {
     try {
       if (isRegister) await register(fullName.trim(), email.trim(), password);
       else await login(email.trim(), password);
-      navigation.replace('AllergyProfile'); // TODO: match the route name in Dorcase's navigation
+      navigation.navigate(route?.params?.redirectTo || 'AllergyProfile');
     } catch (e) {
       setError(e.message);
     } finally {

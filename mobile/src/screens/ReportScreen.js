@@ -3,10 +3,12 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 
 import { searchMedicines, submitReport } from '../services/api';
 
 export default function ReportScreen({ route }) {
-  const preselected = route?.params?.medicineId ? { id: route.params.medicineId, name: route.params.medicineName } : null;
+  const params = route?.params || {};
+  const preselected = params.medicineId ? { id: params.medicineId, name: params.medicineName } : null;
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [medicine, setMedicine] = useState(preselected);
+  const [productName, setProductName] = useState(!params.medicineId && params.medicineName ? params.medicineName : '');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [error, setError] = useState('');
@@ -24,12 +26,19 @@ export default function ReportScreen({ route }) {
 
   async function submit() {
     setError('');
-    if (!description.trim()) return setError('Please describe what looks suspicious.');
+    if (!medicine && !productName.trim()) {
+      return setError('Pick a medicine from the search, or type the product name.');
+    }
+    const details = description.trim();
+    const text = medicine ? details : `Product: ${productName.trim()}. ${details}`;
+    if (text.length < 5 || text.length > 1000) {
+      return setError('Please describe what looks suspicious (5 to 1000 characters).');
+    }
     setLoading(true);
     try {
       await submitReport({
-        medicineId: medicine?.id,
-        description: description.trim(),
+        medicineId: medicine ? medicine.id : undefined,
+        description: text,
         location: location.trim() || undefined,
       });
       setDone(true);
@@ -43,7 +52,8 @@ export default function ReportScreen({ route }) {
         <Text style={s.title}>Report sent</Text>
         <Text style={s.body}>Thank you. Your report will be reviewed.</Text>
         <TouchableOpacity style={s.button} onPress={() => {
-          setMedicine(null); setResults([]); setQuery(''); setDescription(''); setLocation(''); setDone(false);
+          setMedicine(null); setResults([]); setQuery(''); setProductName('');
+          setDescription(''); setLocation(''); setDone(false);
         }}>
           <Text style={s.buttonText}>Send another report</Text>
         </TouchableOpacity>
@@ -63,6 +73,7 @@ export default function ReportScreen({ route }) {
         </View>
       ) : (
         <View>
+          <Text style={s.label}>Find it in our records</Text>
           <TextInput style={s.input} placeholder="Search the medicine name" value={query}
             onChangeText={setQuery} onSubmitEditing={onSearch} />
           <TouchableOpacity style={s.secondary} onPress={onSearch}><Text>Search</Text></TouchableOpacity>
@@ -71,6 +82,9 @@ export default function ReportScreen({ route }) {
               <Text>{m.name}</Text>
             </TouchableOpacity>
           ))}
+          <Text style={s.label}>Or type the product name</Text>
+          <TextInput style={s.input} placeholder="Product name (if not in our records)"
+            value={productName} onChangeText={setProductName} />
         </View>
       )}
 
@@ -89,6 +103,7 @@ const s = StyleSheet.create({
   container: { padding: 20 },
   title: { fontSize: 24, fontWeight: '700', marginBottom: 8 },
   body: { marginBottom: 16, color: '#444' },
+  label: { fontWeight: '700', marginBottom: 6 },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 12, marginBottom: 12 },
   multiline: { height: 110, textAlignVertical: 'top' },
   row: { padding: 10, borderBottomWidth: 1, borderColor: '#eee' },

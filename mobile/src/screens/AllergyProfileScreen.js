@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { getIngredients, getAllergies, addAllergy, deleteAllergy } from '../services/api';
+import { getIngredients, getAllergies, addAllergy, deleteAllergy, hasToken } from '../services/api';
 
 const SEVERITIES = ['mild', 'moderate', 'severe'];
 
@@ -13,7 +13,7 @@ export default function AllergyProfileScreen({ navigation }) {
   const [error, setError] = useState('');
 
   function handleError(e) {
-    if (e.code === 'UNAUTHORIZED') navigation.replace('Login'); // TODO: match route name
+    if (e.code === 'UNAUTHORIZED') navigation.navigate('Login', { redirectTo: 'AllergyProfile' });
     else setError(e.message);
   }
 
@@ -21,7 +21,12 @@ export default function AllergyProfileScreen({ navigation }) {
     try { setAllergies(await getAllergies()); } catch (e) { handleError(e); }
   }
 
-  useEffect(() => { loadAllergies(); }, []);
+  useEffect(() => {
+    hasToken().then((ok) => {
+      if (!ok) navigation.navigate('Login', { redirectTo: 'AllergyProfile' });
+      else loadAllergies();
+    });
+  }, []);
 
   useEffect(() => {
     getIngredients(query).then(setIngredients).catch(handleError);

@@ -64,3 +64,6 @@ export async function searchMedicines(q) {
 
 export const submitReport = ({ medicineId, description, location }) =>
   request('/reports', { method: 'POST', body: { medicineId, description, location } });
+export async function hasToken() {
+  return !!(await AsyncStorage.getItem('token'));
+}
