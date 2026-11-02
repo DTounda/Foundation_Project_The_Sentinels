@@ -60,7 +60,28 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
     },
   };
 
-  return { medicineRepository, verificationLogRepository, _logs: logs };
+  const users = [];
+  const userRepository = {
+    async findByEmail(email) {
+      return users.find((u) => u.email === email) || null;
+    },
+    async findById(id) {
+      return users.find((u) => u.id === id) || null;
+    },
+    async create({ fullName, email, passwordHash }) {
+      const user = { id: users.length + 1, fullName, email, passwordHash, role: 'user' };
+      users.push(user);
+      return { id: user.id, fullName, email, role: 'user' };
+    },
+  };
+
+  return {
+    medicineRepository,
+    verificationLogRepository,
+    userRepository,
+    _logs: logs,
+    _users: users,
+  };
 }
 
 module.exports = { createFakeRepositories, SAMPLE_MEDICINES };
