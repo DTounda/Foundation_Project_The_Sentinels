@@ -1,4 +1,6 @@
+const { createIngredientRepository } = require('./ingredientRepository');
 const { createMedicineRepository } = require('./medicineRepository');
+const { createUserAllergyRepository } = require('./userAllergyRepository');
 const { createUserRepository } = require('./userRepository');
 const { createVerificationLogRepository } = require('./verificationLogRepository');
 
@@ -8,6 +10,8 @@ function createMysqlRepositories(pool) {
     medicineRepository: createMedicineRepository(pool),
     verificationLogRepository: createVerificationLogRepository(pool),
     userRepository: createUserRepository(pool),
+    ingredientRepository: createIngredientRepository(pool),
+    userAllergyRepository: createUserAllergyRepository(pool),
   };
 }
 

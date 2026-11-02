@@ -5,6 +5,9 @@ const { createVerifyController } = require('../controllers/verify.controller');
 const { createVerifyRoutes } = require('./verify.routes');
 const { createAuthController } = require('../controllers/auth.controller');
 const { createAuthRoutes } = require('./auth.routes');
+const { createAllergyController } = require('../controllers/allergy.controller');
+const { createAllergyRoutes } = require('./allergy.routes');
+const { createAllergyService } = require('../services/allergyService');
 const { createVerificationService } = require('../services/verificationService');
 const { createAuthService } = require('../services/authService');
 const { createAuthMiddleware } = require('../middleware/auth');
@@ -24,7 +27,8 @@ function buildRouter({ checkDatabase, repositories, config, authLimiter = passTh
   if (repositories) {
     const authService = createAuthService({ userRepository: repositories.userRepository, config });
     const auth = createAuthMiddleware({ authService });
-    const verificationService = createVerificationService(repositories);
+    const allergyService = createAllergyService(repositories);
+    const verificationService = createVerificationService({ ...repositories, allergyService });
 
     router.use(
       createAuthRoutes({ authController: createAuthController({ authService }), authLimiter }),
@@ -33,6 +37,12 @@ function buildRouter({ checkDatabase, repositories, config, authLimiter = passTh
       createVerifyRoutes({
         verifyController: createVerifyController({ verificationService }),
         optionalAuth: auth.optionalAuth,
+      }),
+    );
+    router.use(
+      createAllergyRoutes({
+        allergyController: createAllergyController({ allergyService }),
+        requireAuth: auth.requireAuth,
       }),
     );
   }

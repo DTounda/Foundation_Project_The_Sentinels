@@ -38,8 +38,18 @@ const SAMPLE_MEDICINES = [
   },
 ];
 
+const SAMPLE_INGREDIENTS = [
+  { id: 1, name: 'Paracetamol' },
+  { id: 2, name: 'Amoxicillin' },
+  { id: 3, name: 'Ibuprofen' },
+];
+
+/** medicine id -> ingredient ids (mirrors the MedicineIngredients table) */
+const SAMPLE_MEDICINE_INGREDIENTS = { 1: [1], 2: [2], 3: [3], 4: [1, 3] };
+
 function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
   const logs = [];
+  const allergies = [];
 
   const medicineRepository = {
     async findByBarcode(barcode) {
@@ -48,8 +58,42 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
     async findById(id) {
       return medicines.find((m) => m.id === id) || null;
     },
-    async getIngredients() {
-      return [];
+    async getIngredients(medicineId) {
+      return (SAMPLE_MEDICINE_INGREDIENTS[medicineId] || []).map((id) =>
+        SAMPLE_INGREDIENTS.find((i) => i.id === id),
+      );
+    },
+  };
+
+  const ingredientRepository = {
+    async findById(id) {
+      return SAMPLE_INGREDIENTS.find((i) => i.id === id) || null;
+    },
+    async list(query = '') {
+      const q = query.toLowerCase();
+      return SAMPLE_INGREDIENTS.filter((i) => i.name.toLowerCase().includes(q));
+    },
+  };
+
+  const userAllergyRepository = {
+    async listByUser(userId) {
+      return allergies.filter((a) => a.userId === userId).map(({ userId: _u, ...rest }) => rest);
+    },
+    async findByUserAndIngredient(userId, ingredientId) {
+      const found = allergies.find((a) => a.userId === userId && a.ingredientId === ingredientId);
+      return found || null;
+    },
+    async add(userId, ingredientId, severity) {
+      const ingredient = SAMPLE_INGREDIENTS.find((i) => i.id === ingredientId);
+      const id = allergies.length + 1;
+      allergies.push({ id, userId, ingredientId, ingredient: ingredient.name, severity });
+      return id;
+    },
+    async remove(userId, allergyId) {
+      const index = allergies.findIndex((a) => a.id === allergyId && a.userId === userId);
+      if (index === -1) return false;
+      allergies.splice(index, 1);
+      return true;
     },
   };
 
@@ -79,6 +123,8 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
     medicineRepository,
     verificationLogRepository,
     userRepository,
+    ingredientRepository,
+    userAllergyRepository,
     _logs: logs,
     _users: users,
   };
