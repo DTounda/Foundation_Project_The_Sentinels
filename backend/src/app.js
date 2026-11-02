@@ -30,7 +30,10 @@ function createApp({
   const limiter = enableRateLimit
     ? createRateLimiter({ windowMs: 15 * 60 * 1000, limit: 300 })
     : passThrough;
-  app.use('/api/v1', limiter, buildRouter({ checkDatabase, repositories, config }));
+  const authLimiter = enableRateLimit
+    ? createRateLimiter({ windowMs: 15 * 60 * 1000, limit: 20 })
+    : passThrough;
+  app.use('/api/v1', limiter, buildRouter({ checkDatabase, repositories, config, authLimiter }));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

@@ -1,8 +1,8 @@
 const { Router } = require('express');
 
-function createVerifyRoutes({ verifyController }) {
+function createVerifyRoutes({ verifyController, optionalAuth }) {
   const router = Router();
-  router.post('/verify/barcode', verifyController.verifyBarcode);
+  router.post('/verify/barcode', optionalAuth, verifyController.verifyBarcode);
   return router;
 }
 
