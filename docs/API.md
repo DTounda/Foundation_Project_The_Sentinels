@@ -32,8 +32,13 @@ Body: `{ "fullName": "Aline Uwase", "email": "aline@example.com", "password": "m
 409 if the email already exists. New accounts are always role `user`.
 
 ### `POST /auth/login`
-Body: `{ "email": "...", "password": "..." }`
-200: same shape as register. 401 for wrong email or password (same message for both).
+Body: `{ "medicineId": 1, "description": "Packaging looks different", "location": "Kimironko" }`
+- `medicineId` is optional. Send it when the product is in our records. If the product is not in our records, leave it out and write the product name in `description`.
+- `description` is required, 5 to 1000 characters.
+- `location` is optional, up to 150 characters.
+
+201: `{ "report": { "id": 1, "status": "new" } }`
+400 `VALIDATION_ERROR` if `description` is missing or out of range, or if `medicineId` is sent but is not a positive integer. 404 if `medicineId` is sent but unknown.
 
 ## Health
 
@@ -72,8 +77,13 @@ Public list used by the allergy picker. 200: `{ "ingredients": [ { "id": 2, "nam
 200: `{ "allergies": [ { "id": 1, "ingredientId": 2, "ingredient": "Amoxicillin", "severity": "severe" } ] }`
 
 ### `POST /allergies`
-Body: `{ "ingredientId": 2, "severity": "mild" | "moderate" | "severe" }`
-201: the created allergy. 404 unknown ingredient. 409 already listed.
+Body: `{ "medicineId": 1, "description": "Packaging looks different", "location": "Kimironko" }`
+- `medicineId` is optional. Send it when the product is in our records. If the product is not in our records, leave it out and write the product name in `description`.
+- `description` is required, 5 to 1000 characters.
+- `location` is optional, up to 150 characters.
+
+201: `{ "report": { "id": 1, "status": "new" } }`
+400 `VALIDATION_ERROR` if `description` is missing or out of range, or if `medicineId` is sent but is not a positive integer. 404 if `medicineId` is sent but unknown.
 
 ### `DELETE /allergies/:id`
 204. 404 if it is not yours.
