@@ -12,6 +12,9 @@ const { createVerificationService } = require('../services/verificationService')
 const { createAuthService } = require('../services/authService');
 const { createAuthMiddleware } = require('../middleware/auth');
 const { passThrough } = require('../middleware/rateLimit');
+const { createReportController } = require('../controllers/report.controller');
+const { createReportRoutes } = require('./report.routes');
+const { createReportService } = require('../services/reportService');
 
 /**
  * Builds the /api/v1 router.
@@ -30,6 +33,11 @@ function buildRouter({ checkDatabase, repositories, config, authLimiter = passTh
     const allergyService = createAllergyService(repositories);
     const verificationService = createVerificationService({ ...repositories, allergyService });
 
+    const reportService = createReportService({
+      reportRepository: repositories.reportRepository,
+      medicineRepository: repositories.medicineRepository,
+    });
+
     router.use(
       createAuthRoutes({ authController: createAuthController({ authService }), authLimiter }),
     );
@@ -43,6 +51,12 @@ function buildRouter({ checkDatabase, repositories, config, authLimiter = passTh
       createAllergyRoutes({
         allergyController: createAllergyController({ allergyService }),
         requireAuth: auth.requireAuth,
+      }),
+    );
+    router.use(
+      createReportRoutes({
+        reportController: createReportController({ reportService }),
+        optionalAuth: auth.optionalAuth,
       }),
     );
   }

@@ -4,6 +4,8 @@ const {
   parseEmail,
   parsePassword,
   parseSeverity,
+  parseReportDescription,
+  parseOptionalLocation,
 } = require('../../src/utils/validators');
 
 describe('parseBarcode', () => {
@@ -57,3 +59,31 @@ describe('parseEmail / parsePassword / parseSeverity', () => {
     expect(() => parseSeverity('deadly')).toThrow();
   });
 });
+
+describe('report validators', () => {
+  it('accepts and trims a valid description', () => {
+    expect(parseReportDescription('  Packaging looks different  ')).toBe(
+      'Packaging looks different',
+    );
+  });
+
+  it.each([undefined, null, '', '1234', 'x'.repeat(1001)])(
+    'rejects invalid description %p',
+    (value) => {
+      expect(() => parseReportDescription(value)).toThrow(/description/);
+    },
+  );
+
+  it('returns null when location is omitted', () => {
+    expect(parseOptionalLocation(undefined)).toBeNull();
+  });
+
+  it('accepts and trims a valid location', () => {
+    expect(parseOptionalLocation('  Kimironko  ')).toBe('Kimironko');
+  });
+
+  it('rejects a location longer than 150 characters', () => {
+    expect(() => parseOptionalLocation('x'.repeat(151))).toThrow(/location/);
+  });
+});
+
