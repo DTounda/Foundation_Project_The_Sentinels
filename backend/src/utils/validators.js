@@ -1,4 +1,3 @@
-
 const AppError = require('./AppError');
 
 const BARCODE_PATTERN = /^[A-Za-z0-9-]{4,50}$/;

@@ -1,4 +1,3 @@
-
 /**
  * All SQL for medicines lives here. Always parameterised (?) to prevent SQL injection.
  * Rows are mapped to camelCase objects so the rest of the code never sees column names.

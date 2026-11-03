@@ -1,4 +1,3 @@
-
 const { parseBarcode, parseSearchQuery } = require('../utils/validators');
 
 function createVerifyController({ verificationService }) {

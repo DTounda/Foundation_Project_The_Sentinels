@@ -1,4 +1,3 @@
-
 const { buildResult } = require('./resultBuilder');
 
 function createVerificationService({
@@ -26,6 +25,10 @@ function createVerificationService({
     /** Verify a scanned barcode. userId is null for anonymous checks. */
     async verifyByBarcode({ barcode, userId = null }) {
       const medicine = await medicineRepository.findByBarcode(barcode);
+
+      // If this lookup fails we let the request fail (500): showing "Verified" without the
+      // allergy alerts a logged-in user expects would be worse than showing an error.
+
       const allergyAlerts = medicine
         ? await allergyService.getAlertsForMedicine(userId, medicine.id)
         : [];
@@ -48,10 +51,7 @@ function createVerificationService({
       const results = [];
 
       for (const medicine of medicines) {
-        const allergyAlerts = await allergyService.getAlertsForMedicine(
-          userId,
-          medicine.id,
-        );
+        const allergyAlerts = await allergyService.getAlertsForMedicine(userId, medicine.id);
 
         const result = buildResult(medicine, allergyAlerts);
         results.push(result);
