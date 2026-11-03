@@ -3,6 +3,7 @@ const { createMedicineRepository } = require('./medicineRepository');
 const { createUserAllergyRepository } = require('./userAllergyRepository');
 const { createUserRepository } = require('./userRepository');
 const { createVerificationLogRepository } = require('./verificationLogRepository');
+const { createReportRepository } = require('./reportRepository');
 
 /** Wires every MySQL repository to one pool. Add new repositories here. */
 function createMysqlRepositories(pool) {
@@ -12,6 +13,7 @@ function createMysqlRepositories(pool) {
     userRepository: createUserRepository(pool),
     ingredientRepository: createIngredientRepository(pool),
     userAllergyRepository: createUserAllergyRepository(pool),
+    reportRepository: createReportRepository(pool),
   };
 }
 

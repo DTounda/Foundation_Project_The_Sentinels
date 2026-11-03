@@ -50,6 +50,7 @@ const SAMPLE_MEDICINE_INGREDIENTS = { 1: [1], 2: [2], 3: [3], 4: [1, 3] };
 function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
   const logs = [];
   const allergies = [];
+  const reports = [];
 
   const medicineRepository = {
     async findByBarcode(barcode) {
@@ -113,6 +114,26 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
     },
   };
 
+  const reportRepository = {
+    async create({ userId = null, medicineId = null, description, location = null }) {
+      const report = {
+        id: reports.length + 1,
+        userId,
+        medicineId,
+        description,
+        location,
+        status: 'new',
+      };
+
+      reports.push(report);
+
+      return {
+        id: report.id,
+        status: report.status,
+      };
+    },
+  };
+
   const users = [];
   const userRepository = {
     async findByEmail(email) {
@@ -131,11 +152,13 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
   return {
     medicineRepository,
     verificationLogRepository,
+    reportRepository,
     userRepository,
     ingredientRepository,
     userAllergyRepository,
     _logs: logs,
     _users: users,
+    _reports: reports,
   };
 }
 

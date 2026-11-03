@@ -55,6 +55,38 @@ function parseSeverity(value) {
   return value;
 }
 
+function parseReportDescription(value) {
+  if (typeof value !== 'string') {
+    throw AppError.validation('description is required');
+  }
+
+  const description = value.trim();
+
+  if (description.length < 5 || description.length > 1000) {
+    throw AppError.validation('description must be between 5 and 1000 characters');
+  }
+
+  return description;
+}
+
+function parseOptionalLocation(value) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (typeof value !== 'string') {
+    throw AppError.validation('location must be text');
+  }
+
+  const location = value.trim();
+
+  if (location.length > 150) {
+    throw AppError.validation('location must be 150 characters or fewer');
+  }
+
+  return location || null;
+}
+
 module.exports = {
   parseBarcode,
   parsePositiveInt,
@@ -62,5 +94,7 @@ module.exports = {
   parsePassword,
   parseFullName,
   parseSeverity,
+  parseReportDescription,
+  parseOptionalLocation,
   SEVERITIES,
 };
