@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../config';
 
-async function request(path, { method = 'GET', body, auth = false } = {}, retried = false) {
-  const token = await AsyncStorage.getItem('token');
+async function request(path, { method = 'GET', body, auth = false, guest = false } = {}) {
+  const token = guest ? null : await AsyncStorage.getItem('token');
   if (auth && !token) {
     const err = new Error('Please log in first.');
     err.code = 'UNAUTHORIZED';
@@ -20,7 +20,6 @@ async function request(path, { method = 'GET', body, auth = false } = {}, retrie
   // An expired or invalid token makes the API answer 401, even on public routes.
   if (res.status === 401 && token) {
     await AsyncStorage.removeItem('token');
-    if (!auth && !retried) return request(path, { method, body, auth }, true); // retry as a guest
     const err = new Error('Your session expired. Please log in again.');
     err.code = 'UNAUTHORIZED';
     err.status = 401;
@@ -44,11 +43,11 @@ async function saveSession(data) {
 }
 
 export async function register(fullName, email, password) {
-  return saveSession(await request('/auth/register', { method: 'POST', body: { fullName, email, password } }));
+    return saveSession(await request('/auth/register', { method: 'POST', guest: true, body: { fullName, email, password } }));
 }
 
 export async function login(email, password) {
-  return saveSession(await request('/auth/login', { method: 'POST', body: { email, password } }));
+  return saveSession(await request('/auth/login', { method: 'POST', guest: true, body: { email, password } }));
 }
 
 export const logout = () => AsyncStorage.removeItem('token');
