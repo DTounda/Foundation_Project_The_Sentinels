@@ -39,9 +39,9 @@ const SAMPLE_MEDICINES = [
 ];
 
 const SAMPLE_INGREDIENTS = [
-  { id: 1, name: 'Paracetamol' },
-  { id: 2, name: 'Amoxicillin' },
-  { id: 3, name: 'Ibuprofen' },
+  { id: 1, name: 'Paracetamol', strength: '500 mg' },
+  { id: 2, name: 'Amoxicillin', strength: '250 mg' },
+  { id: 3, name: 'Ibuprofen', strength: '400 mg' },
 ];
 
 /** medicine id -> ingredient ids (mirrors the MedicineIngredients table) */
@@ -59,9 +59,15 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
       return medicines.find((m) => m.id === id) || null;
     },
     async getIngredients(medicineId) {
-      return (SAMPLE_MEDICINE_INGREDIENTS[medicineId] || []).map((id) =>
-        SAMPLE_INGREDIENTS.find((i) => i.id === id),
-      );
+      return (SAMPLE_MEDICINE_INGREDIENTS[medicineId] || []).map((id) => {
+        const ingredient = SAMPLE_INGREDIENTS.find((item) => item.id === id);
+
+        return {
+          id: ingredient.id,
+          name: ingredient.name,
+          strength: ingredient.strength,
+        };
+      });
     },
   };
 
@@ -71,7 +77,10 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
     },
     async list(query = '') {
       const q = query.toLowerCase();
-      return SAMPLE_INGREDIENTS.filter((i) => i.name.toLowerCase().includes(q));
+
+      return SAMPLE_INGREDIENTS
+        .filter((i) => i.name.toLowerCase().includes(q))
+        .map((i) => ({ id: i.id, name: i.name }));
     },
   };
 
