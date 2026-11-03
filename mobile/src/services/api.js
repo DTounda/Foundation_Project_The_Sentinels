@@ -67,3 +67,7 @@ export const submitReport = ({ medicineId, description, location }) =>
 export async function hasToken() {
   return !!(await AsyncStorage.getItem('token'));
 }
+
+// Kept from Tasnim's version (used by SearchScanScreen); fixed to follow docs/API.md
+export const fetchMedication = (query) =>
+  request(`/medicines/search?q=${encodeURIComponent(query)}`);
