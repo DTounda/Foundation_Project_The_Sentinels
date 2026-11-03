@@ -53,12 +53,19 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
   const reports = [];
 
   const medicineRepository = {
+    async searchByName(query) {
+      const search = query.toLowerCase();
+      return medicines.filter((medicine) => medicine.name.toLowerCase().includes(search));
+    },
+
     async findByBarcode(barcode) {
       return medicines.find((m) => m.barcode === barcode) || null;
     },
+
     async findById(id) {
       return medicines.find((m) => m.id === id) || null;
     },
+
     async getIngredients(medicineId) {
       return (SAMPLE_MEDICINE_INGREDIENTS[medicineId] || []).map((id) => {
         const ingredient = SAMPLE_INGREDIENTS.find((item) => item.id === id);

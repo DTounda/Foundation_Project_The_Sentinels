@@ -126,3 +126,30 @@ describe('POST /api/v1/verify/barcode', () => {
     logger.mockRestore();
   });
 });
+
+describe('GET /api/v1/medicines/search', () => {
+  it('returns 400 when the search query has fewer than 2 characters', async () => {
+    const { app } = setup();
+    const res = await request(app).get('/api/v1/medicines/search?q=p');
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('returns matching medicines for a valid search query', async () => {
+    const { app } = setup();
+    const res = await request(app).get('/api/v1/medicines/search?q=para');
+
+    expect(res.status).toBe(200);
+    expect(res.body.results.length).toBeGreaterThan(0);
+    expect(res.body.results[0].medicine.name).toContain('Paracetamol');
+  });
+
+  it('returns an empty list when no medicine matches', async () => {
+    const { app } = setup();
+    const res = await request(app).get('/api/v1/medicines/search?q=unknownmedicine');
+
+    expect(res.status).toBe(200);
+    expect(res.body.results).toEqual([]);
+  });
+});

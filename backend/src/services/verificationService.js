@@ -25,12 +25,15 @@ function createVerificationService({
     /** Verify a scanned barcode. userId is null for anonymous checks. */
     async verifyByBarcode({ barcode, userId = null }) {
       const medicine = await medicineRepository.findByBarcode(barcode);
+
       // If this lookup fails we let the request fail (500): showing "Verified" without the
       // allergy alerts a logged-in user expects would be worse than showing an error.
+
       const allergyAlerts = medicine
         ? await allergyService.getAlertsForMedicine(userId, medicine.id)
         : [];
       const result = buildResult(medicine, allergyAlerts);
+
       await saveLog({
         userId,
         medicine,
@@ -38,7 +41,45 @@ function createVerificationService({
         result: result.status,
         allergyWarning: allergyAlerts.length > 0,
       });
+
       return result;
+    },
+
+    /** Search medicines by name. */
+    async searchByName({ query, userId = null }) {
+      const medicines = await medicineRepository.searchByName(query);
+      const results = [];
+
+      for (const medicine of medicines) {
+        const allergyAlerts = await allergyService.getAlertsForMedicine(userId, medicine.id);
+
+        const result = buildResult(medicine, allergyAlerts);
+        results.push(result);
+
+        await saveLog({
+          userId,
+          medicine,
+          method: 'search',
+          result: result.status,
+          allergyWarning: allergyAlerts.length > 0,
+        });
+      }
+
+      if (medicines.length === 0) {
+        const result = buildResult(null);
+        await saveLog({
+          userId,
+          medicine: null,
+          method: 'search',
+          result: result.status,
+          allergyWarning: false,
+        });
+      }
+
+      return {
+        results,
+        disclaimer: buildResult(null).disclaimer,
+      };
     },
   };
 }

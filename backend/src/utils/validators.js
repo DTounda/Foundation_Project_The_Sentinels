@@ -16,6 +16,14 @@ function parseBarcode(value) {
   return barcode;
 }
 
+/** Validate a medicine search query. */
+function parseSearchQuery(value) {
+  if (typeof value !== 'string' || value.trim().length < 2) {
+    throw AppError.validation('search query must be at least 2 characters');
+  }
+  return value.trim();
+}
+
 /** Accepts 12, "12"; rejects 0, -1, 1.5, "abc". */
 function parsePositiveInt(value, fieldName) {
   const n = typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : value;
@@ -89,6 +97,7 @@ function parseOptionalLocation(value) {
 
 module.exports = {
   parseBarcode,
+  parseSearchQuery,
   parsePositiveInt,
   parseEmail,
   parsePassword,

@@ -26,6 +26,19 @@ function createMedicineRepository(pool) {
       return rows.length ? mapMedicine(rows[0]) : null;
     },
 
+    /** Find medicines whose names contain the search query. */
+    async searchByName(query) {
+      const [rows] = await pool.execute(
+        `SELECT medicine_id, name, manufacturer, registration_number, barcode, verified_status
+           FROM Medicines
+          WHERE name LIKE ?
+          ORDER BY name
+          LIMIT 20`,
+        [`%${query}%`],
+      );
+      return rows.map(mapMedicine);
+    },
+
     async findById(id) {
       const [rows] = await pool.execute(
         `SELECT medicine_id, name, manufacturer, registration_number, barcode, verified_status
