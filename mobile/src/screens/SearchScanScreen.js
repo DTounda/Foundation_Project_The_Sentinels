@@ -14,7 +14,7 @@ export default function SearchScanScreen() {
       const data = await fetchMedication(query);
       setResults(data);
     } catch (err) {
-      setError('Failed to fetch data');
+      setError(err.message || 'Failed to fetch data');
     }
   };
 
