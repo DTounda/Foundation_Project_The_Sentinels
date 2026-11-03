@@ -84,12 +84,5 @@ SELECT m.medicine_id, i.ingredient_id,
        END
 FROM Medicines m
 JOIN Ingredients i
-  ON i.name = CASE MOD(CAST(RIGHT(m.registration_number, 4) AS UNSIGNED), 6)
-       WHEN 0 THEN 'Aspirin'
-       WHEN 1 THEN 'Metformin'
-       WHEN 2 THEN 'Omeprazole'
-       WHEN 3 THEN 'Azithromycin'
-       WHEN 4 THEN 'Vitamin C'
-       WHEN 5 THEN 'Caffeine'
-     END
+  ON m.name LIKE CONCAT('%(', i.name, ')')
 WHERE m.registration_number BETWEEN 'DEMO-RW-0007' AND 'DEMO-RW-0056';
