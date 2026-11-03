@@ -1,14 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../config';
 
-async function request(path, { method = 'GET', body, auth = false } = {}) {
-  const headers = { 'Content-Type': 'application/json' };
+async function request(path, { method = 'GET', body, auth = false } = {}, retried = false) {
   const token = await AsyncStorage.getItem('token');
   if (auth && !token) {
     const err = new Error('Please log in first.');
     err.code = 'UNAUTHORIZED';
     throw err;
   }
+  const headers = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
@@ -16,6 +16,17 @@ async function request(path, { method = 'GET', body, auth = false } = {}) {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+
+  // An expired or invalid token makes the API answer 401, even on public routes.
+  if (res.status === 401 && token) {
+    await AsyncStorage.removeItem('token');
+    if (!auth && !retried) return request(path, { method, body, auth }, true); // retry as a guest
+    const err = new Error('Your session expired. Please log in again.');
+    err.code = 'UNAUTHORIZED';
+    err.status = 401;
+    throw err;
+  }
+
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -25,7 +36,7 @@ async function request(path, { method = 'GET', body, auth = false } = {}) {
     throw err;
   }
   return data;
-}
+} 
 
 async function saveSession(data) {
   await AsyncStorage.setItem('token', data.token);
