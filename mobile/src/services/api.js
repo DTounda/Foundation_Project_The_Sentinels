@@ -81,3 +81,6 @@ export async function hasToken() {
 // Kept from Tasnim's version (used by SearchScanScreen); fixed to follow docs/API.md
 export const fetchMedication = (query) =>
   request(`/medicines/search?q=${encodeURIComponent(query)}`);
+
+export const verifyBarcode = (barcode) =>
+  request('/verify/barcode', { method: 'POST', body: { barcode } });
