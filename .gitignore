@@ -6,3 +6,4 @@ node_modules/
 
 # Local database backup
 medicheck_backup.sql
+coverage/
