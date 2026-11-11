@@ -1,3 +1,5 @@
+const AppError = require('../utils/AppError');
+
 function mapUser(row) {
   return {
     id: row.user_id,
@@ -30,12 +32,19 @@ function createUserRepository(pool) {
 
     /** The role is always 'user' here. Pharmacists/admins are promoted directly in the database. */
     async create({ fullName, email, passwordHash }) {
-      const [res] = await pool.execute(
-        `INSERT INTO Users (full_name, email, password_hash, role, created_at)
-         VALUES (?, ?, ?, 'user', NOW())`,
-        [fullName, email, passwordHash],
-      );
-      return { id: res.insertId, fullName, email, role: 'user' };
+      try {
+        const [res] = await pool.execute(
+          `INSERT INTO Users (full_name, email, password_hash, role, created_at)
+          VALUES (?, ?, ?, 'user', NOW())`,
+          [fullName, email, passwordHash],
+        );
+        return { id: res.insertId, fullName, email, role: 'user' };
+      } catch (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          throw AppError.conflict('An account with this email already exists');
+        }
+        throw err;
+      }
     },
   };
 }

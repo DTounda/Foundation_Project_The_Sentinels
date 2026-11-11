@@ -1,3 +1,5 @@
+const AppError = require('../utils/AppError');
+
 function mapAllergy(row) {
   return {
     id: row.user_allergy_id,
@@ -34,11 +36,18 @@ function createUserAllergyRepository(pool) {
     },
 
     async add(userId, ingredientId, severity) {
-      const [res] = await pool.execute(
-        'INSERT INTO UserAllergies (user_id, ingredient_id, severity) VALUES (?, ?, ?)',
-        [userId, ingredientId, severity],
-      );
-      return res.insertId;
+      try {
+        const [res] = await pool.execute(
+          'INSERT INTO UserAllergies (user_id, ingredient_id, severity) VALUES (?, ?, ?)',
+          [userId, ingredientId, severity],
+        );
+        return res.insertId;
+      } catch (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          throw AppError.conflict('This ingredient is already in your allergy list');
+        }
+        throw err;
+      }
     },
 
     /** Returns true if a row of THIS user was deleted. */
