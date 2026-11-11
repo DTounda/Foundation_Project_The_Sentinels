@@ -1,32 +1,75 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { fetchMedication } from '../services/api';
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  FlatList,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
+import { searchMedicines } from '../services/api';
+import DisclaimerBanner from '../components/DisclaimerBanner';
+import { STATUS_STYLES, FALLBACK_STATUS } from '../constants/statusStyles';
 
-export default function SearchScanScreen() {
+// Used when a search finds nothing, so the user sees the real message and never a blank screen.
+const NOT_FOUND_RESULT = {
+  status: 'not_found',
+  message: 'Not found in our records. Ask your pharmacist.',
+  medicine: null,
+  allergyAlerts: [],
+};
+
+export default function SearchScanScreen({ navigation }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState(null);
-  const [error, setError] = useState(null);
-  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Scanner. Tasnim owns what the user sees (the states and the layout below).
+  // Annabel owns the camera: CameraView, permission, onBarcodeScanned and the verify call.
+  // She sets scanLoading while verifying and scanError when something fails.
+  // For an unreadable code she uses:
+  // setScanError("We couldn't read this code. Please try again or search by name.")
   const [showScanner, setShowScanner] = useState(false);
   const [scanLoading, setScanLoading] = useState(false);
-  const [scanError, setScanError] = useState(null);
+  const [scanError, setScanError] = useState('');
 
-  const handleSearch = async () => {
-    setError(null);
-    setResults(null);
-    try {
-      const data = await fetchMedication(query);
-      setResults(data);
-    } catch (err) {
-      setError(err.message || 'Failed to fetch data');
+  async function handleSearch() {
+    const text = query.trim();
+    if (text.length < 2) {
+      setError('Please type at least 2 characters.');
+      return;
     }
-  };
+    setError('');
+    setResults(null);
+    setLoading(true);
+    try {
+      const found = await searchMedicines(text);
+      if (!found || found.length === 0) {
+        navigation.navigate('Result', { result: NOT_FOUND_RESULT });
+      } else if (found.length === 1) {
+        navigation.navigate('Result', { result: found[0] });
+      } else {
+        setResults(found);
+      }
+    } catch (e) {
+      setError(e.message || 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function closeScanner() {
+    setShowScanner(false);
+    setScanLoading(false);
+    setScanError('');
+  }
 
   if (showScanner) {
     return (
       <View style={styles.scannerContainer}>
-        <View style={styles.cameraPlaceholder} />
-        
+        {/* Annabel: put the CameraView here, filling the screen behind the frame. */}
         <View style={styles.instructionContainer}>
           <Text style={styles.instructionText}>Place the barcode inside the frame</Text>
         </View>
@@ -35,88 +78,114 @@ export default function SearchScanScreen() {
 
         {scanLoading && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#ffffff" />
+            <ActivityIndicator size="large" color="#FFFFFF" />
             <Text style={styles.loadingText}>Verifying...</Text>
           </View>
         )}
 
-        {scanError && (
-          <View style={styles.errorOverlay}>
-            <Text style={styles.errorText}>{scanError}</Text>
+        {scanError !== '' && (
+          <View style={styles.messageBox}>
+            <Text style={styles.messageText}>{scanError}</Text>
+            <Pressable
+              style={styles.retryButton}
+              accessibilityRole="button"
+              onPress={() => setScanError('')}
+            >
+              <Text style={styles.retryText}>Try again</Text>
+            </Pressable>
           </View>
         )}
 
-        <TouchableOpacity style={styles.cancelButton} onPress={() => setShowScanner(false)}>
+        <Pressable style={styles.cancelButton} accessibilityRole="button" onPress={closeScanner}>
           <Text style={styles.buttonText}>Cancel</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
+    );
+  }
+
+  function renderItem({ item }) {
+    const style = STATUS_STYLES[item.status] || FALLBACK_STATUS;
+    return (
+      <Pressable
+        style={[styles.card, { borderLeftColor: style.color }]}
+        accessibilityRole="button"
+        onPress={() => navigation.navigate('Result', { result: item })}
+      >
+        <Text style={styles.cardTitle}>{item.medicine ? item.medicine.name : 'Unknown medicine'}</Text>
+        <Text style={styles.cardMessage}>{item.message}</Text>
+      </Pressable>
     );
   }
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        placeholder="Search medication..."
-        value={query}
-        onChangeText={setQuery}
-      />
-      <TouchableOpacity style={styles.button} onPress={handleSearch}>
-        <Text style={styles.buttonText}>Search</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={() => setShowScanner(true)}>
-        <Text style={styles.buttonText}>Scan barcode / QR code</Text>
-      </TouchableOpacity>
-      {error && <Text style={styles.error}>{error}</Text>}
-      {results && <Text style={styles.result}>Results found</Text>}
+      <View style={styles.content}>
+        <TextInput
+          style={styles.input}
+          placeholder="Search medicine by name"
+          value={query}
+          onChangeText={setQuery}
+          onSubmitEditing={handleSearch}
+          returnKeyType="search"
+        />
+        <Pressable style={styles.button} accessibilityRole="button" onPress={handleSearch}>
+          <Text style={styles.buttonText}>Search</Text>
+        </Pressable>
+        <Pressable style={styles.button} accessibilityRole="button" onPress={() => setShowScanner(true)}>
+          <Text style={styles.buttonText}>Scan barcode / QR code</Text>
+        </Pressable>
+
+        {loading && <ActivityIndicator size="large" color="#1565C0" style={styles.space} />}
+        {error !== '' && <Text style={styles.error}>{error}</Text>}
+
+        {results !== null && (
+          <FlatList
+            data={results}
+            keyExtractor={(item, index) =>
+              item.medicine && item.medicine.id ? String(item.medicine.id) : String(index)
+            }
+            renderItem={renderItem}
+            style={styles.space}
+          />
+        )}
+      </View>
+      <DisclaimerBanner />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  content: { flex: 1, padding: 16 },
   input: {
-    height: 50,
-    borderColor: '#ccc',
     borderWidth: 1,
+    borderColor: '#757575',
     borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 20,
+    padding: 12,
+    marginBottom: 12,
+    color: '#212121',
   },
   button: {
-    backgroundColor: '#007AFF',
-    padding: 15,
+    backgroundColor: '#1565C0',
     borderRadius: 8,
+    padding: 14,
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 12,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  space: { marginTop: 12 },
+  error: { color: '#212121', backgroundColor: '#E3F2FD', borderRadius: 8, padding: 12, marginTop: 8 },
+  card: {
+    borderWidth: 1,
+    borderColor: '#B0B0B0',
+    borderLeftWidth: 6,
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 10,
   },
-  error: {
-    color: 'red',
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  result: {
-    color: 'green',
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  scannerContainer: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  cameraPlaceholder: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#222',
-  },
+  cardTitle: { fontSize: 16, fontWeight: '600', color: '#212121' },
+  cardMessage: { fontSize: 14, color: '#212121', marginTop: 4 },
+  scannerContainer: { flex: 1, backgroundColor: '#212121' },
   instructionContainer: {
     position: 'absolute',
     top: 50,
@@ -125,10 +194,10 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   instructionText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    fontWeight: '600',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     padding: 10,
     borderRadius: 8,
   },
@@ -139,7 +208,7 @@ const styles = StyleSheet.create({
     width: '70%',
     height: '40%',
     borderWidth: 2,
-    borderColor: '#00FF00',
+    borderColor: '#FFFFFF',
     borderRadius: 12,
     zIndex: 10,
   },
@@ -150,31 +219,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 20,
   },
-  loadingText: {
-    color: '#fff',
-    marginTop: 10,
-    fontSize: 16,
-  },
-  errorOverlay: {
+  loadingText: { color: '#FFFFFF', marginTop: 10, fontSize: 16 },
+  messageBox: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 110,
     left: 20,
     right: 20,
-    backgroundColor: 'rgba(255,0,0,0.8)',
+    backgroundColor: '#E3F2FD',
     padding: 15,
     borderRadius: 8,
     zIndex: 20,
   },
-  errorText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: 'bold',
+  messageText: { color: '#212121', textAlign: 'center', fontSize: 15 },
+  retryButton: {
+    backgroundColor: '#1565C0',
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+    marginTop: 10,
   },
+  retryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
   cancelButton: {
     position: 'absolute',
     bottom: 40,
     alignSelf: 'center',
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#1565C0',
     paddingVertical: 12,
     paddingHorizontal: 30,
     borderRadius: 25,
