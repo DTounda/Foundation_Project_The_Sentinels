@@ -56,15 +56,8 @@ function createAllergyService({ medicineRepository, ingredientRepository, userAl
       if (await userAllergyRepository.findByUserAndIngredient(userId, ingredientId)) {
         throw AppError.conflict(`${ingredient.name} is already in your allergy list`);
       }
-      try {
-        const id = await userAllergyRepository.add(userId, ingredientId, severity);
-        return { id, ingredientId, ingredient: ingredient.name, severity };
-      } catch (err) {
-        if (err && err.code === 'ER_DUP_ENTRY') {
-          throw AppError.conflict(`${ingredient.name} is already in your allergy list`);
-        }
-        throw err;
-      }
+      const id = await userAllergyRepository.add(userId, ingredientId, severity);
+      return { id, ingredientId, ingredient: ingredient.name, severity };
     },
 
     async removeAllergy(userId, allergyId) {
