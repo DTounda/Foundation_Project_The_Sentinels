@@ -72,6 +72,16 @@ export async function searchMedicines(q) {
   return data.results; // each result has result.medicine.id and result.medicine.name
 }
 
+// Details for one medicine, used by the Result screen to list what is in the product.
+// Token optional: the ingredient list is the same whether or not you are logged in.
+export async function getMedicineDetails(id) {
+  const data = await request(`/medicines/${encodeURIComponent(id)}`);
+  return {
+    medicine: data.medicine ?? null,
+    ingredients: Array.isArray(data.ingredients) ? data.ingredients : [],
+  };
+}
+
 export const submitReport = ({ medicineId, description, location }) =>
   request('/reports', { method: 'POST', body: { medicineId, description, location } });
 export async function hasToken() {
