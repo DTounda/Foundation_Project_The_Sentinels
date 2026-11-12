@@ -23,6 +23,13 @@ const config = {
     database: process.env.DB_NAME || 'medicheck',
     connectionLimit: 10,
   },
+
+  dbDriver: process.env.DB_DRIVER || 'mysql',
+  mongo: {
+    uri: process.env.MONGODB_URI || 'mongodb://localhost:27017',
+    dbName: process.env.MONGODB_DB || 'medicheck',
+  },
+
   jwt: {
     secret: required('JWT_SECRET', 'dev-only-secret-change-me-dev-only-secret'),
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',

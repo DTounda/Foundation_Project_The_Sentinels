@@ -3,42 +3,39 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   FlatList,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import { API_BASE_URL } from '../config';
+import { Alert } from 'react-native';
+import { searchMedicines } from '../services/api';
+import DisclaimerBanner from '../components/DisclaimerBanner';
+import { LoadingIndicator, ErrorMessage } from '../components/LoadingAndError';
+import { STATUS_STYLES, FALLBACK_STATUS } from '../constants/statusStyles';
 
-const COLORS = {
-  blue: '#1565C0',
-  text: '#212121',
-  verified: '#2E7D32',
-  unconfirmed: '#F9A825',
-  not_found: '#757575',
+// Used when a search finds nothing, so the user sees the real message and never a blank screen.
+const NOT_FOUND_RESULT = {
+  status: 'not_found',
+  message: 'Not found in our records. Ask your pharmacist.',
+  medicine: null,
+  allergyAlerts: [],
 };
-
-async function request(path, options) {
-  const response = await fetch(API_BASE_URL + path, options);
-  const data = await response.json();
-  if (!response.ok) {
-    const message =
-      data && data.error ? data.error.message : 'Something went wrong. Please try again.';
-    throw new Error(message);
-  }
-  return data;
-}
 
 export default function SearchScanScreen({ navigation }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState(null);
-  const [disclaimer, setDisclaimer] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [scanning, setScanning] = useState(false);
-  const [scanned, setScanned] = useState(false);
-  const [permission, requestPermission] = useCameraPermissions();
+
+  // Scanner. Tasnim owns what the user sees (the states and the layout below).
+  // Annabel owns the camera: CameraView, permission, onBarcodeScanned and the verify call.
+  // She sets scanLoading while verifying and scanError when something fails.
+  // For an unreadable code she uses:
+  // setScanError("We couldn't read this code. Please try again or search by name.")
+  const [showScanner, setShowScanner] = useState(false);
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanError, setScanError] = useState('');
 
   async function handleSearch() {
     const text = query.trim();
@@ -50,159 +47,213 @@ export default function SearchScanScreen({ navigation }) {
     setResults(null);
     setLoading(true);
     try {
-      const data = await request('/medicines/search?q=' + encodeURIComponent(text));
-      setResults(data.results || []);
-      setDisclaimer(data.disclaimer || '');
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function startScan() {
-    if (!permission || !permission.granted) {
-      const answer = await requestPermission();
-      if (!answer.granted) {
-        setError('Camera permission is needed to scan. You can search by name instead.');
-        return;
+      const found = await searchMedicines(text);
+      if (!found || found.length === 0) {
+        navigation.navigate('Result', { result: NOT_FOUND_RESULT });
+      } else if (found.length === 1) {
+        navigation.navigate('Result', { result: found[0] });
+      } else {
+        setResults(found);
       }
-    }
-    setError('');
-    setScanned(false);
-    setScanning(true);
-  }
-
-  async function handleBarcode({ data: barcode }) {
-    if (scanned) return;
-    setScanned(true);
-    setScanning(false);
-    setError('');
-    setLoading(true);
-    try {
-      const result = await request('/verify/barcode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ barcode }),
-      });
-      navigation.navigate('Result', { result });
     } catch (e) {
-      setError(e.message);
+      setError(e.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   }
 
-  if (scanning) {
+  function handleTakePhoto() {
+    // Photo feature goes here. For now the button shows a short message.
+    Alert.alert('Take a photo', 'This feature is coming soon.');
+  }
+
+  function closeScanner() {
+    setShowScanner(false);
+    setScanLoading(false);
+    setScanError('');
+  }
+
+  if (showScanner) {
     return (
-      <View style={styles.cameraContainer}>
-        <CameraView
-          style={styles.camera}
-          onBarcodeScanned={handleBarcode}
-          barcodeScannerSettings={{
-            barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'qr'],
-          }}
-        />
-        <TouchableOpacity style={styles.cancelButton} onPress={() => setScanning(false)}>
+      <View style={styles.scannerContainer}>
+        {/* Annabel: put the CameraView here, filling the screen behind the frame. */}
+        <View style={styles.instructionContainer}>
+          <Text style={styles.instructionText}>Place the barcode inside the frame</Text>
+        </View>
+
+        <View style={styles.scanFrame} />
+
+        {scanLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#FFFFFF" />
+            <Text style={styles.loadingText}>Verifying...</Text>
+          </View>
+        )}
+
+        {scanError !== '' && (
+          <View style={styles.messageBox}>
+            <Text style={styles.messageText}>{scanError}</Text>
+            <Pressable
+              style={styles.retryButton}
+              accessibilityRole="button"
+              onPress={() => setScanError('')}
+            >
+              <Text style={styles.retryText}>Try again</Text>
+            </Pressable>
+          </View>
+        )}
+
+        <Pressable style={styles.cancelButton} accessibilityRole="button" onPress={closeScanner}>
           <Text style={styles.buttonText}>Cancel</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   }
 
   function renderItem({ item }) {
-    const name = item.medicine ? item.medicine.name : 'Unknown medicine';
+    const style = STATUS_STYLES[item.status] || FALLBACK_STATUS;
     return (
-      <TouchableOpacity
-        style={[styles.card, { borderLeftColor: COLORS[item.status] || COLORS.not_found }]}
-        onPress={() => navigation.navigate('Result', { result: { ...item, disclaimer } })}
+      <Pressable
+        style={[styles.card, { borderLeftColor: style.color }]}
+        accessibilityRole="button"
+        onPress={() => navigation.navigate('Result', { result: item })}
       >
-        <Text style={styles.cardTitle}>{name}</Text>
+        <Text style={styles.cardTitle}>{item.medicine ? item.medicine.name : 'Unknown medicine'}</Text>
         <Text style={styles.cardMessage}>{item.message}</Text>
-      </TouchableOpacity>
+      </Pressable>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Search medicine by name</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Search medicine by name"
-        value={query}
-        onChangeText={setQuery}
-        onSubmitEditing={handleSearch}
-        returnKeyType="search"
-      />
-      <TouchableOpacity style={styles.button} onPress={handleSearch}>
-        <Text style={styles.buttonText}>Search</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={startScan}>
-        <Text style={styles.buttonText}>Scan barcode / QR code</Text>
-      </TouchableOpacity>
-
-      {loading && <ActivityIndicator size="large" color={COLORS.blue} style={styles.space} />}
-      {error !== '' && <Text style={styles.error}>{error}</Text>}
-
-      {results !== null && results.length === 0 && (
-        <Text style={styles.cardMessage}>Not found in our records. Ask your pharmacist.</Text>
-      )}
-
-      {results !== null && results.length > 0 && (
-        <FlatList
-          data={results}
-          keyExtractor={(item, index) =>
-            item.medicine && item.medicine.id ? String(item.medicine.id) : String(index)
-          }
-          renderItem={renderItem}
-          style={styles.space}
+      <View style={styles.content}>
+        <TextInput
+          style={styles.input}
+          placeholder="Search medicine by name"
+          value={query}
+          onChangeText={setQuery}
+          onSubmitEditing={handleSearch}
+          returnKeyType="search"
         />
-      )}
+        <Pressable style={styles.button} accessibilityRole="button" onPress={handleSearch}>
+          <Text style={styles.buttonText}>Search</Text>
+        </Pressable>
+        <Pressable style={styles.button} accessibilityRole="button" onPress={handleTakePhoto}>
+          <Text style={styles.buttonText}>Take a photo</Text>
+        </Pressable>
 
-      {results !== null && disclaimer !== '' && (
-        <Text style={styles.disclaimer}>{disclaimer}</Text>
-      )}
+        {loading && <LoadingIndicator text="Searching..." />}
+        {error !== '' && <ErrorMessage message={error} onRetry={handleSearch} />}
+
+        {results !== null && (
+          <FlatList
+            data={results}
+            keyExtractor={(item, index) =>
+              item.medicine && item.medicine.id ? String(item.medicine.id) : String(index)
+            }
+            renderItem={renderItem}
+            style={styles.space}
+          />
+        )}
+      </View>
+      <DisclaimerBanner />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#FFFFFF' },
-  title: { fontSize: 18, fontWeight: '600', color: COLORS.text, marginBottom: 12 },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  content: { flex: 1, padding: 16 },
   input: {
     borderWidth: 1,
-    borderColor: COLORS.not_found,
-    borderRadius: 6,
-    padding: 10,
-    marginBottom: 10,
-    color: COLORS.text,
+    borderColor: '#757575',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    color: '#212121',
   },
   button: {
-    backgroundColor: COLORS.blue,
-    borderRadius: 6,
-    padding: 12,
+    backgroundColor: '#1565C0',
+    borderRadius: 8,
+    padding: 14,
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  buttonText: { color: '#FFFFFF', fontSize: 15 },
+  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
   space: { marginTop: 12 },
-  error: { color: COLORS.text, marginTop: 8 },
+  error: { color: '#212121', backgroundColor: '#E3F2FD', borderRadius: 8, padding: 12, marginTop: 8 },
   card: {
     borderWidth: 1,
     borderColor: '#B0B0B0',
     borderLeftWidth: 6,
-    borderRadius: 6,
-    padding: 12,
+    borderRadius: 8,
+    padding: 14,
     marginBottom: 10,
   },
-  cardTitle: { fontSize: 15, fontWeight: '600', color: COLORS.text },
-  cardMessage: { fontSize: 13, color: COLORS.text, marginTop: 4 },
-  disclaimer: { fontSize: 11, color: COLORS.not_found, textAlign: 'center', marginTop: 12 },
-  cameraContainer: { flex: 1, backgroundColor: '#000000' },
-  camera: { flex: 1 },
-  cancelButton: {
-    backgroundColor: COLORS.blue,
-    padding: 14,
+  cardTitle: { fontSize: 16, fontWeight: '600', color: '#212121' },
+  cardMessage: { fontSize: 14, color: '#212121', marginTop: 4 },
+  scannerContainer: { flex: 1, backgroundColor: '#212121' },
+  instructionContainer: {
+    position: 'absolute',
+    top: 50,
+    width: '100%',
     alignItems: 'center',
+    zIndex: 10,
+  },
+  instructionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 10,
+    borderRadius: 8,
+  },
+  scanFrame: {
+    position: 'absolute',
+    top: '30%',
+    left: '15%',
+    width: '70%',
+    height: '40%',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    borderRadius: 12,
+    zIndex: 10,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  loadingText: { color: '#FFFFFF', marginTop: 10, fontSize: 16 },
+  messageBox: {
+    position: 'absolute',
+    bottom: 110,
+    left: 20,
+    right: 20,
+    backgroundColor: '#E3F2FD',
+    padding: 15,
+    borderRadius: 8,
+    zIndex: 20,
+  },
+  messageText: { color: '#212121', textAlign: 'center', fontSize: 15 },
+  retryButton: {
+    backgroundColor: '#1565C0',
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  retryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  cancelButton: {
+    position: 'absolute',
+    bottom: 40,
+    alignSelf: 'center',
+    backgroundColor: '#1565C0',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    zIndex: 10,
   },
 });

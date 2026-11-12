@@ -27,16 +27,7 @@ function createAuthService({ userRepository, config }) {
         throw AppError.conflict('An account with this email already exists');
       }
       const passwordHash = await bcrypt.hash(password, rounds);
-      let user;
-      try {
-        user = await userRepository.create({ fullName, email, passwordHash });
-      } catch (err) {
-        // Two sign-ups with the same email at the same instant: the UNIQUE index catches it.
-        if (err && err.code === 'ER_DUP_ENTRY') {
-          throw AppError.conflict('An account with this email already exists');
-        }
-        throw err;
-      }
+      const user = await userRepository.create({ fullName, email, passwordHash });
       return { user: publicUser(user), token: signToken(user) };
     },
 

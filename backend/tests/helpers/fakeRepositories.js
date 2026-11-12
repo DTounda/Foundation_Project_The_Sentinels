@@ -39,9 +39,9 @@ const SAMPLE_MEDICINES = [
 ];
 
 const SAMPLE_INGREDIENTS = [
-  { id: 1, name: 'Paracetamol' },
-  { id: 2, name: 'Amoxicillin' },
-  { id: 3, name: 'Ibuprofen' },
+  { id: 1, name: 'Paracetamol', strength: '500 mg' },
+  { id: 2, name: 'Amoxicillin', strength: '250 mg' },
+  { id: 3, name: 'Ibuprofen', strength: '400 mg' },
 ];
 
 /** medicine id -> ingredient ids (mirrors the MedicineIngredients table) */
@@ -50,6 +50,7 @@ const SAMPLE_MEDICINE_INGREDIENTS = { 1: [1], 2: [2], 3: [3], 4: [1, 3] };
 function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
   const logs = [];
   const allergies = [];
+  const reports = [];
 
   const medicineRepository = {
     async searchByName(query) {
@@ -66,9 +67,15 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
     },
 
     async getIngredients(medicineId) {
-      return (SAMPLE_MEDICINE_INGREDIENTS[medicineId] || []).map((id) =>
-        SAMPLE_INGREDIENTS.find((i) => i.id === id),
-      );
+      return (SAMPLE_MEDICINE_INGREDIENTS[medicineId] || []).map((id) => {
+        const ingredient = SAMPLE_INGREDIENTS.find((item) => item.id === id);
+
+        return {
+          id: ingredient.id,
+          name: ingredient.name,
+          strength: ingredient.strength,
+        };
+      });
     },
   };
 
@@ -78,7 +85,10 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
     },
     async list(query = '') {
       const q = query.toLowerCase();
-      return SAMPLE_INGREDIENTS.filter((i) => i.name.toLowerCase().includes(q));
+
+      return SAMPLE_INGREDIENTS
+        .filter((i) => i.name.toLowerCase().includes(q))
+        .map((i) => ({ id: i.id, name: i.name }));
     },
   };
 
@@ -111,6 +121,26 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
     },
   };
 
+  const reportRepository = {
+    async create({ userId = null, medicineId = null, description, location = null }) {
+      const report = {
+        id: reports.length + 1,
+        userId,
+        medicineId,
+        description,
+        location,
+        status: 'new',
+      };
+
+      reports.push(report);
+
+      return {
+        id: report.id,
+        status: report.status,
+      };
+    },
+  };
+
   const users = [];
   const userRepository = {
     async findByEmail(email) {
@@ -129,11 +159,13 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
   return {
     medicineRepository,
     verificationLogRepository,
+    reportRepository,
     userRepository,
     ingredientRepository,
     userAllergyRepository,
     _logs: logs,
     _users: users,
+    _reports: reports,
   };
 }
 

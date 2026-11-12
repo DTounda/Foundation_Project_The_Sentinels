@@ -12,12 +12,18 @@ const { createVerificationService } = require('../services/verificationService')
 const { createAuthService } = require('../services/authService');
 const { createAuthMiddleware } = require('../middleware/auth');
 const { passThrough } = require('../middleware/rateLimit');
+const { createMedicineController } = require('../controllers/medicine.controller');
+const { createMedicineRoutes } = require('./medicine.routes');
+const { createMedicineService } = require('../services/medicineService');
+const { createReportController } = require('../controllers/report.controller');
+const { createReportRoutes } = require('./report.routes');
+const { createReportService } = require('../services/reportService');
 
 /**
  * Builds the /api/v1 router.
  * To add an endpoint: create controller + routes file, then mount it here.
- * `repositories` is injected (MySQL in production, in-memory fakes in tests).
- * Teammates can use `requireAuth` / `optionalAuth` from `auth` on their own routes.
+ * repositories is injected (MySQL in production, in-memory fakes in tests).
+ * Teammates can use requireAuth / optionalAuth from auth on their own routes.
  */
 function buildRouter({ checkDatabase, repositories, config, authLimiter = passThrough }) {
   const router = Router();
@@ -29,6 +35,14 @@ function buildRouter({ checkDatabase, repositories, config, authLimiter = passTh
     const auth = createAuthMiddleware({ authService });
     const allergyService = createAllergyService(repositories);
     const verificationService = createVerificationService({ ...repositories, allergyService });
+    const medicineService = createMedicineService({
+      medicineRepository: repositories.medicineRepository,
+    });
+
+    const reportService = createReportService({
+      reportRepository: repositories.reportRepository,
+      medicineRepository: repositories.medicineRepository,
+    });
 
     router.use(
       createAuthRoutes({ authController: createAuthController({ authService }), authLimiter }),
@@ -43,6 +57,17 @@ function buildRouter({ checkDatabase, repositories, config, authLimiter = passTh
       createAllergyRoutes({
         allergyController: createAllergyController({ allergyService }),
         requireAuth: auth.requireAuth,
+      }),
+    );
+    router.use(
+      createMedicineRoutes({
+        medicineController: createMedicineController({ medicineService }),
+      }),
+    );
+    router.use(
+      createReportRoutes({
+        reportController: createReportController({ reportService }),
+        optionalAuth: auth.optionalAuth,
       }),
     );
   }
