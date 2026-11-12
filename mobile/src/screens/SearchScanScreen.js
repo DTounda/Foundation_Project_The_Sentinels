@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { searchMedicines } from '../services/api';
 import DisclaimerBanner from '../components/DisclaimerBanner';
+import { LoadingIndicator, ErrorMessage } from '../components/LoadingAndError';
 import { STATUS_STYLES, FALLBACK_STATUS } from '../constants/statusStyles';
 
 // Used when a search finds nothing, so the user sees the real message and never a blank screen.
@@ -135,8 +136,8 @@ export default function SearchScanScreen({ navigation }) {
           <Text style={styles.buttonText}>Scan barcode / QR code</Text>
         </Pressable>
 
-        {loading && <ActivityIndicator size="large" color="#1565C0" style={styles.space} />}
-        {error !== '' && <Text style={styles.error}>{error}</Text>}
+        {loading && <LoadingIndicator text="Searching..." />}
+        {error !== '' && <ErrorMessage message={error} onRetry={handleSearch} />}
 
         {results !== null && (
           <FlatList
