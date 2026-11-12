@@ -1,3 +1,4 @@
+
 const { createIngredientRepository } = require('./ingredientRepository');
 const { createMedicineRepository } = require('./medicineRepository');
 const { createUserAllergyRepository } = require('./userAllergyRepository');
@@ -5,7 +6,26 @@ const { createUserRepository } = require('./userRepository');
 const { createVerificationLogRepository } = require('./verificationLogRepository');
 const { createReportRepository } = require('./reportRepository');
 
-/** Wires every MySQL repository to one pool. Add new repositories here. */
+const {
+  createMongoMedicineRepository,
+} = require('./mongo/medicineRepository');
+
+const {
+  createMongoIngredientRepository,
+} = require('./mongo/ingredientRepository');
+
+const {
+  createMongoUserAllergyRepository,
+} = require('./mongo/userAllergyRepository');
+
+const {
+  createMongoUserRepository,
+} = require('./mongo/userRepository');
+
+const {
+  createMongoVerificationLogRepository,
+} = require('./mongo/verificationLogRepository');
+
 function createMysqlRepositories(pool) {
   return {
     medicineRepository: createMedicineRepository(pool),
@@ -17,17 +37,17 @@ function createMysqlRepositories(pool) {
   };
 }
 
-/**
- * MongoDB versions of the repositories, with the same method names and return shapes
- * as the MySQL ones, so nothing above this layer changes.
- * Olivier: medicine, ingredient, userAllergy. Ephraim: user, report, verificationLog.
- * Each file goes in repositories/mongo/ and is added here when it is ready.
- */
-// Rename _db to db when the first Mongo repository is added below.
-function createMongoRepositories(_db) {
+function createMongoRepositories(db) {
   return {
-    // medicineRepository: createMongoMedicineRepository(db),
+    medicineRepository: createMongoMedicineRepository(db),
+    ingredientRepository: createMongoIngredientRepository(db),
+    userAllergyRepository: createMongoUserAllergyRepository(db),
+    userRepository: createMongoUserRepository(db),
+    verificationLogRepository: createMongoVerificationLogRepository(db),
   };
 }
 
-module.exports = { createMysqlRepositories, createMongoRepositories };
+module.exports = {
+  createMysqlRepositories,
+  createMongoRepositories,
+};
