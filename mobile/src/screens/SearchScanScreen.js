@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
+import { Alert } from 'react-native';
 import { searchMedicines } from '../services/api';
 import DisclaimerBanner from '../components/DisclaimerBanner';
 import { STATUS_STYLES, FALLBACK_STATUS } from '../constants/statusStyles';
@@ -58,6 +59,11 @@ export default function SearchScanScreen({ navigation }) {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleTakePhoto() {
+    // Photo feature goes here. For now the button shows a short message.
+    Alert.alert('Take a photo', 'This feature is coming soon.');
   }
 
   function closeScanner() {
@@ -131,8 +137,8 @@ export default function SearchScanScreen({ navigation }) {
         <Pressable style={styles.button} accessibilityRole="button" onPress={handleSearch}>
           <Text style={styles.buttonText}>Search</Text>
         </Pressable>
-        <Pressable style={styles.button} accessibilityRole="button" onPress={() => setShowScanner(true)}>
-          <Text style={styles.buttonText}>Scan barcode / QR code</Text>
+        <Pressable style={styles.button} accessibilityRole="button" onPress={handleTakePhoto}>
+          <Text style={styles.buttonText}>Take a photo</Text>
         </Pressable>
 
         {loading && <ActivityIndicator size="large" color="#1565C0" style={styles.space} />}
