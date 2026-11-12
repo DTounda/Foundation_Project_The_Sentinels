@@ -1,0 +1,22 @@
+{
+  "source": "REPLACE THIS with where the list actually came from, e.g. 'Eden Care provider list, received 12 November 2026'",
+  "updatedAt": "2026-11-12",
+  "entries": [
+    {
+      "id": 1,
+      "name": "EXAMPLE ROW - replace with the real Eden Care data",
+      "type": "pharmacy",
+      "district": "Gasabo",
+      "address": "Kimironko",
+      "phone": "+250 7XX XXX XXX"
+    },
+    {
+      "id": 2,
+      "name": "EXAMPLE ROW - replace with the real Eden Care data",
+      "type": "hospital",
+      "district": "Nyarugenge",
+      "address": "Nyarugenge",
+      "phone": "+250 7XX XXX XXX"
+    }
+  ]
+}
