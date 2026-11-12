@@ -1,23 +1,44 @@
 const config = require('./config/env');
-const { checkDatabase, closePool, getPool } = require('./config/db');
-const { createMysqlRepositories } = require('./repositories');
+const mysql = require('./config/db');
+const mongo = require('./config/mongo');
+const { createMysqlRepositories, createMongoRepositories } = require('./repositories');
 const { createApp } = require('./app');
 
-const app = createApp({
-  config,
-  checkDatabase,
-  repositories: createMysqlRepositories(getPool()),
-});
+/** DB_DRIVER in .env picks the database: 'mysql' (default) or 'mongo'. */
+async function start() {
+  let repositories;
+  let checkDatabase;
+  let closeDatabase;
 
-const server = app.listen(config.port, () => {
-  console.info(`MediCheck API listening on http://localhost:${config.port}/api/v1/health`);
-});
+  if (config.dbDriver === 'mongo') {
+    const db = await mongo.connectMongo();
+    repositories = createMongoRepositories(db);
+    checkDatabase = mongo.checkMongo;
+    closeDatabase = mongo.closeMongo;
+  } else {
+    repositories = createMysqlRepositories(mysql.getPool());
+    checkDatabase = mysql.checkDatabase;
+    closeDatabase = mysql.closePool;
+  }
 
-async function shutdown() {
-  server.close(async () => {
-    await closePool();
-    process.exit(0);
+  const app = createApp({ config, checkDatabase, repositories });
+  const server = app.listen(config.port, () => {
+    console.info(
+      `MediCheck API (${config.dbDriver}) listening on http://localhost:${config.port}/api/v1/health`,
+    );
   });
+
+  function shutdown() {
+    server.close(async () => {
+      await closeDatabase();
+      process.exit(0);
+    });
+  }
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+
+start().catch((err) => {
+  console.error('Could not start the API:', err.message);
+  process.exit(1);
+});
