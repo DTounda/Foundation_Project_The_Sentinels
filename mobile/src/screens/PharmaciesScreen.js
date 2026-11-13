@@ -20,11 +20,28 @@ const FILTERS = [
   { key: 'hospital', label: 'Hospitals' },
 ];
 
+// Pilot is running in these districts first, so their listings should be
+// what people see without having to search or scroll past Bugesera.
+const PRIORITY_DISTRICTS = ['Kimironko', 'Gasabo'];
+
+function priorityRank(entry) {
+  const district = String(entry.district || '').toLowerCase();
+  const idx = PRIORITY_DISTRICTS.findIndex((d) => district.includes(d.toLowerCase()));
+  return idx === -1 ? PRIORITY_DISTRICTS.length : idx;
+}
+
 export default function PharmaciesScreen() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
 
-  const entries = Array.isArray(directory?.entries) ? directory.entries : [];
+  const rawEntries = Array.isArray(directory?.entries) ? directory.entries : [];
+
+  // Stable sort: priority districts first (Kimironko, then Gasabo), then
+  // everything else in its original order.
+  const entries = useMemo(
+    () => [...rawEntries].sort((a, b) => priorityRank(a) - priorityRank(b)),
+    [rawEntries],
+  );
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();

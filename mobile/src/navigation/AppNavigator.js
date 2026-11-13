@@ -12,6 +12,7 @@ import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import ResultScreen from '../screens/ResultScreen';
 import ReportScreen from '../screens/ReportScreen';
+import PhotoVerifyScreen from '../screens/PhotoVerifyScreen';
 import { ROUTES } from './routes';
 import { COLORS } from '../constants/colors';
 import { hasToken } from '../services/api';
@@ -92,6 +93,11 @@ export default function AppNavigator() {
       <Stack.Navigator initialRouteName={signedIn ? ROUTES.TABS : ROUTES.LOGIN}>
         <Stack.Screen name={ROUTES.TABS} component={Tabs} options={{ headerShown: false }} />
         <Stack.Screen name={ROUTES.RESULT} component={ResultScreen} options={{ title: 'Result' }} />
+        <Stack.Screen
+          name={ROUTES.PHOTO_VERIFY}
+          component={PhotoVerifyScreen}
+          options={{ title: 'Verify by photo' }}
+        />
         <Stack.Screen
           name={ROUTES.REPORT}
           component={ReportScreen}

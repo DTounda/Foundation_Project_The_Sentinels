@@ -73,7 +73,16 @@ export async function login(email, password) {
   return saveSession(await request('/auth/login', { method: 'POST', guest: true, body: { email, password } }));
 }
 
-export const logout = () => AsyncStorage.removeItem('token');
+// Clears the session plus everything the Profile screen may have cached
+// locally, so a shared pilot phone never shows the next person's data.
+export const logout = () =>
+  AsyncStorage.multiRemove([
+    'token',
+    'user',
+    'profile.doctor',
+    'profile.pharmacy',
+    'profile.medications',
+  ]);
 
 export async function getIngredients(q = '') {
   const data = await request(`/ingredients?q=${encodeURIComponent(q)}`);
@@ -138,6 +147,17 @@ export const addMedication = (name) =>
 
 export const deleteMedication = (id) =>
   request(`/me/medications/${encodeURIComponent(id)}`, { method: 'DELETE', auth: true });
+
+// Photo feature. image is a base64 JPEG string, no "data:" prefix.
+// Returns { candidates: [{ medicineId, name, manufacturer, confidence }], disclaimer }.
+// Throws with err.status === 422 when nothing readable was found.
+export const verifyPhoto = (base64Image) =>
+  request('/verify/photo', { method: 'POST', body: { image: base64Image } });
+
+// Called after the user picks one of the photo candidates.
+// Returns the same shape as verifyBarcode (status, message, medicine, allergyAlerts, disclaimer).
+export const verifyMedicine = (medicineId) =>
+  request('/verify/medicine', { method: 'POST', body: { medicineId } });
 
 // Checks the medicine against what the user already takes. Not built yet.
 export async function checkInteractions(medicineId) {
