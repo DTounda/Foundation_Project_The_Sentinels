@@ -1,4 +1,3 @@
-
 const AppError = require('../../utils/AppError');
 const { nextId } = require('../counters');
 
@@ -59,9 +58,7 @@ function createMongoUserRepository(db) {
         };
       } catch (err) {
         if (err.code === 11000) {
-          throw AppError.conflict(
-            'An account with this email already exists',
-          );
+          throw AppError.conflict('An account with this email already exists');
         }
 
         throw err;

@@ -1,4 +1,3 @@
-
 function createMongoIngredientRepository(db) {
   const ingredients = db.collection('Ingredients');
 
@@ -17,22 +16,15 @@ function createMongoIngredientRepository(db) {
     },
 
     async list(query = '') {
-      const escapedQuery = String(query || '').trim().replace(
-        /[.*+?^${}()|[\]\\]/g,
-        '\\$&',
-      );
+      const escapedQuery = String(query || '')
+        .trim()
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-      const filter = escapedQuery
-        ? { name: { $regex: escapedQuery, $options: 'i' } }
-        : {};
+      const filter = escapedQuery ? { name: { $regex: escapedQuery, $options: 'i' } } : {};
 
-      const documents = await ingredients
-        .find(filter)
-        .sort({ name: 1 })
-        .limit(100)
-        .toArray();
+      const documents = await ingredients.find(filter).sort({ name: 1 }).limit(100).toArray();
 
-      return documents.map(document => ({
+      return documents.map((document) => ({
         id: document.ingredientId,
         name: document.name,
       }));

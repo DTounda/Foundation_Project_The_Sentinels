@@ -1,4 +1,3 @@
-
 const { buildResult } = require('./resultBuilder');
 const AppError = require('../utils/AppError');
 
@@ -31,12 +30,13 @@ function createVerificationService({
       return;
     }
 
-    await Promise.all(entries.map(entry => saveLog(entry)));
+    await Promise.all(entries.map((entry) => saveLog(entry)));
   }
 
   return {
     /** Verify a scanned barcode. userId is null for anonymous checks. */
     async verifyByBarcode({ barcode, userId = null }) {
+      // If this lookup fails, we let the request fail rather than returning an unverified result.
       const medicine = await medicineRepository.findByBarcode(barcode);
 
       const allergyAlerts = medicine
@@ -62,10 +62,7 @@ function createVerificationService({
 
       if (!medicine) throw AppError.notFound('Medicine not found');
 
-      const allergyAlerts = await allergyService.getAlertsForMedicine(
-        userId,
-        medicine.id,
-      );
+      const allergyAlerts = await allergyService.getAlertsForMedicine(userId, medicine.id);
 
       const result = buildResult(medicine, allergyAlerts);
 
@@ -90,11 +87,11 @@ function createVerificationService({
         if (typeof allergyService.getAlertsForMedicines === 'function') {
           alertsByMedicine = await allergyService.getAlertsForMedicines(
             userId,
-            medicines.map(medicine => medicine.id),
+            medicines.map((medicine) => medicine.id),
           );
         } else {
           const alertEntries = await Promise.all(
-            medicines.map(async medicine => [
+            medicines.map(async (medicine) => [
               medicine.id,
               await allergyService.getAlertsForMedicine(userId, medicine.id),
             ]),
@@ -104,7 +101,7 @@ function createVerificationService({
         }
       }
 
-      const results = medicines.map(medicine => {
+      const results = medicines.map((medicine) => {
         const allergyAlerts = alertsByMedicine.get(medicine.id) || [];
 
         return buildResult(medicine, allergyAlerts);

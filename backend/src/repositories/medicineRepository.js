@@ -1,4 +1,3 @@
-
 /**
  * All SQL for medicines lives here.
  * Queries are parameterised to prevent SQL injection.
@@ -44,11 +43,9 @@ function createMedicineRepository(pool) {
     },
 
     async listForMatching() {
-      const [rows] = await pool.execute(
-        'SELECT medicine_id, name, manufacturer FROM Medicines',
-      );
+      const [rows] = await pool.execute('SELECT medicine_id, name, manufacturer FROM Medicines');
 
-      return rows.map(row => ({
+      return rows.map((row) => ({
         id: row.medicine_id,
         name: row.name,
         manufacturer: row.manufacturer,
@@ -76,7 +73,7 @@ function createMedicineRepository(pool) {
         [medicineId],
       );
 
-      return rows.map(row => ({
+      return rows.map((row) => ({
         id: row.ingredient_id,
         name: row.name,
         strength: row.strength,
@@ -88,11 +85,7 @@ function createMedicineRepository(pool) {
      * Returns a Map: medicineId -> ingredients array.
      */
     async getIngredientsForMedicines(medicineIds) {
-      const ids = [...new Set(
-        (medicineIds || [])
-          .map(Number)
-          .filter(Number.isFinite),
-      )];
+      const ids = [...new Set((medicineIds || []).map(Number).filter(Number.isFinite))];
 
       if (ids.length === 0) return new Map();
 
@@ -106,7 +99,7 @@ function createMedicineRepository(pool) {
         ids,
       );
 
-      const result = new Map(ids.map(id => [id, []]));
+      const result = new Map(ids.map((id) => [id, []]));
 
       for (const row of rows) {
         result.get(row.medicine_id).push({

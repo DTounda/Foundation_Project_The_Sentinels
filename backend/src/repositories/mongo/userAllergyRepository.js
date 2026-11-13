@@ -1,4 +1,3 @@
-
 const AppError = require('../../utils/AppError');
 const { nextId } = require('../counters');
 
@@ -8,20 +7,16 @@ function createMongoUserAllergyRepository(db) {
 
   return {
     async listByUser(userId) {
-      const allergies = await userAllergies
-        .find({ userId: Number(userId) })
-        .toArray();
+      const allergies = await userAllergies.find({ userId: Number(userId) }).toArray();
 
       return allergies
-        .map(allergy => ({
+        .map((allergy) => ({
           id: allergy.allergyId,
           ingredientId: allergy.ingredientId,
           ingredient: allergy.ingredientName,
           severity: allergy.severity,
         }))
-        .sort((a, b) =>
-          (a.ingredient || '').localeCompare(b.ingredient || ''),
-        );
+        .sort((a, b) => (a.ingredient || '').localeCompare(b.ingredient || ''));
     },
 
     async findByUserAndIngredient(userId, ingredientId) {
@@ -67,9 +62,7 @@ function createMongoUserAllergyRepository(db) {
         return allergyId;
       } catch (err) {
         if (err.code === 11000) {
-          throw AppError.conflict(
-            'This ingredient is already in your allergy list',
-          );
+          throw AppError.conflict('This ingredient is already in your allergy list');
         }
 
         throw err;
