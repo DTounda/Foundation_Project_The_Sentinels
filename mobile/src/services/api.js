@@ -39,11 +39,34 @@ async function request(path, { method = 'GET', body, auth = false, guest = false
 
 async function saveSession(data) {
   await AsyncStorage.setItem('token', data.token);
+  if (data.user) await AsyncStorage.setItem('user', JSON.stringify(data.user));
   return data.user;
 }
 
-export async function register(fullName, email, password) {
-    return saveSession(await request('/auth/register', { method: 'POST', guest: true, body: { fullName, email, password } }));
+// Account info for the Profile header, saved at login/signup.
+export async function getStoredUser() {
+  const raw = await AsyncStorage.getItem('user');
+  return raw ? JSON.parse(raw) : null;
+}
+
+// The id stays fixed, so changing contact details never loses the record.
+export async function setStoredUser(fields) {
+  const current = (await getStoredUser()) || {};
+  const next = { ...current, ...fields };
+  await AsyncStorage.setItem('user', JSON.stringify(next));
+  return next;
+}
+
+// Sends the new fields plus fullName, so it works before and after the backend change.
+export async function register({ firstName, lastName, email, phone, password }) {
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+  return saveSession(
+    await request('/auth/register', {
+      method: 'POST',
+      guest: true,
+      body: { fullName, firstName, lastName, email, phone, password },
+    }),
+  );
 }
 
 export async function login(email, password) {
@@ -72,8 +95,7 @@ export async function searchMedicines(q) {
   return data.results; // each result has result.medicine.id and result.medicine.name
 }
 
-// Details for one medicine, used by the Result screen to list what is in the product.
-// Token optional: the ingredient list is the same whether or not you are logged in.
+// Ingredients for one medicine, shown on the Result screen.
 export async function getMedicineDetails(id) {
   const data = await request(`/medicines/${encodeURIComponent(id)}`);
   return {
@@ -91,3 +113,39 @@ export async function hasToken() {
 // Kept from Tasnim's version (used by SearchScanScreen); fixed to follow docs/API.md
 export const fetchMedication = (query) =>
   request(`/medicines/search?q=${encodeURIComponent(query)}`);
+
+// Profile endpoints. Not built yet, see docs/API.md.
+
+export const getProfile = () => request('/me', { auth: true });
+
+// Keyed by the account id on the server, never by email or phone.
+export const updateAccount = ({ fullName, email, phone }) =>
+  request('/me/account', { method: 'PUT', auth: true, body: { fullName, email, phone } });
+
+export const saveDoctor = ({ name, phone, email }) =>
+  request('/me/doctor', { method: 'PUT', auth: true, body: { name, phone, email } });
+
+export const savePharmacy = ({ name, phone }) =>
+  request('/me/pharmacy', { method: 'PUT', auth: true, body: { name, phone } });
+
+export async function getMedications() {
+  const data = await request('/me/medications', { auth: true });
+  return Array.isArray(data.medications) ? data.medications : [];
+}
+
+export const addMedication = (name) =>
+  request('/me/medications', { method: 'POST', auth: true, body: { name } });
+
+export const deleteMedication = (id) =>
+  request(`/me/medications/${encodeURIComponent(id)}`, { method: 'DELETE', auth: true });
+
+// Checks the medicine against what the user already takes. Not built yet.
+export async function checkInteractions(medicineId) {
+  if (!(await hasToken())) return [];
+  try {
+    const data = await request(`/medicines/${encodeURIComponent(medicineId)}/interactions`, { auth: true });
+    return Array.isArray(data.interactions) ? data.interactions : [];
+  } catch (e) {
+    return [];
+  }
+}
