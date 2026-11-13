@@ -64,6 +64,16 @@ If a valid token is sent, the response also contains the user's allergy alerts. 
 ```
 For `not_found`, `medicine` is `null` and `allergyAlerts` is `[]`.
 
+
+### `POST /verify/photo`
+Body: `{ "image": "<base64 JPEG, no data: prefix>" }`. Up to 5 MB. The photo is read and discarded, never stored.
+200: ranked candidates, best first, up to 5. Never a single verdict: the user picks one.
+```json
+{ "candidates": [ { "medicineId": 1, "name": "Panadol", "manufacturer": "GSK", "confidence": 0.92 } ],
+  "disclaimer": "..." }
+```
+`confidence` is from 0 to 1. 422 `UNREADABLE` when no text is found or nothing matches a medicine. 400 if `image` is missing or not base64.
+
 ## Allergy profile (token required, each user sees only their own)
 
 ### `GET /ingredients?q=amox`

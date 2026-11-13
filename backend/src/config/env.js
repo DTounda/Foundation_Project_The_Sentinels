@@ -30,6 +30,10 @@ const config = {
     dbName: process.env.MONGODB_DB || 'medicheck',
   },
 
+  ocr: {
+    apiKey: process.env.OCR_API_KEY || '',
+  },
+
   jwt: {
     secret: required('JWT_SECRET', 'dev-only-secret-change-me-dev-only-secret'),
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',

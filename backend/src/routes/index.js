@@ -18,6 +18,10 @@ const { createMedicineService } = require('../services/medicineService');
 const { createReportController } = require('../controllers/report.controller');
 const { createReportRoutes } = require('./report.routes');
 const { createReportService } = require('../services/reportService');
+const { createOcrService } = require('../services/ocrService');
+const { createPhotoService } = require('../services/photoService');
+const { createPhotoController } = require('../controllers/photo.controller');
+const { createPhotoRoutes } = require('./photo.routes');
 
 /**
  * Builds the /api/v1 router.
@@ -25,7 +29,13 @@ const { createReportService } = require('../services/reportService');
  * repositories is injected (MySQL in production, in-memory fakes in tests).
  * Teammates can use requireAuth / optionalAuth from auth on their own routes.
  */
-function buildRouter({ checkDatabase, repositories, config, authLimiter = passThrough }) {
+function buildRouter({
+  checkDatabase,
+  repositories,
+  config,
+  authLimiter = passThrough,
+  ocrService = createOcrService({ apiKey: config.ocr.apiKey }),
+}) {
   const router = Router();
 
   router.use(createHealthRoutes({ healthController: createHealthController({ checkDatabase }) }));
@@ -62,6 +72,16 @@ function buildRouter({ checkDatabase, repositories, config, authLimiter = passTh
     router.use(
       createMedicineRoutes({
         medicineController: createMedicineController({ medicineService }),
+      }),
+    );
+    router.use(
+      createPhotoRoutes({
+        photoController: createPhotoController({
+          photoService: createPhotoService({
+            ocrService,
+            medicineRepository: repositories.medicineRepository,
+          }),
+        }),
       }),
     );
     router.use(

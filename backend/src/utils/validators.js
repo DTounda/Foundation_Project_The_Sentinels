@@ -95,7 +95,19 @@ function parseOptionalLocation(value) {
   return location || null;
 }
 
+/** A base64 JPEG, without the "data:image/jpeg;base64," prefix. */
+function parsePhoto(value) {
+  if (typeof value !== 'string' || value.length < 100) {
+    throw AppError.validation('image is required and must be a base64 JPEG');
+  }
+  if (!/^[A-Za-z0-9+/=]+$/.test(value)) {
+    throw AppError.validation('image must be base64 text only');
+  }
+  return value;
+}
+
 module.exports = {
+  parsePhoto,
   parseBarcode,
   parseSearchQuery,
   parsePositiveInt,

@@ -7,6 +7,10 @@ class AppError extends Error {
     this.code = code;
   }
 
+  static unreadable(message) {
+    return new AppError(422, 'UNREADABLE', message);
+  }
+
   static validation(message) {
     return new AppError(400, 'VALIDATION_ERROR', message);
   }
