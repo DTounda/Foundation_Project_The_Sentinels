@@ -1,5 +1,4 @@
-
-const { nextId } = require('../counters');
+﻿const { nextId, nextIds } = require('../counters');
 
 function createMongoVerificationLogRepository(db) {
   const verificationLogs = db.collection('VerificationLogs');
@@ -26,6 +25,34 @@ function createMongoVerificationLogRepository(db) {
       });
 
       return id;
+    },
+
+    /** Save many checks with 1 id query + 1 insert, instead of 2 queries per log. */
+    async createMany(entries) {
+      if (!entries || entries.length === 0) {
+        return [];
+      }
+
+      const ids = await nextIds(db, 'verificationLogs', entries.length);
+
+      await verificationLogs.insertMany(
+        entries.map((entry, index) => {
+          const userId = entry.userId ?? null;
+          const medicineId = entry.medicineId ?? null;
+
+          return {
+            id: ids[index],
+            userId: userId === null ? null : Number(userId),
+            medicineId: medicineId === null ? null : Number(medicineId),
+            method: entry.method,
+            result: entry.result,
+            allergyWarning: Boolean(entry.allergyWarning),
+            createdAt: new Date(),
+          };
+        }),
+      );
+
+      return ids;
     },
   };
 }

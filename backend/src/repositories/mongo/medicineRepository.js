@@ -70,6 +70,42 @@ function createMongoMedicineRepository(db) {
       }));
     },
 
+    /**
+     * Retrieve ingredients for multiple medicines in one database query.
+     * Returns a Map: medicineId -> ingredients array.
+     */
+    async getIngredientsForMedicines(medicineIds) {
+      const ids = [...new Set(
+        (medicineIds || [])
+          .map(Number)
+          .filter(Number.isFinite),
+      )];
+
+      if (ids.length === 0) return new Map();
+
+      const documents = await medicines
+        .find(
+          { medicineId: { $in: ids } },
+          { projection: { medicineId: 1, ingredients: 1 } },
+        )
+        .toArray();
+
+      const result = new Map(ids.map(id => [id, []]));
+
+      for (const document of documents) {
+        result.set(
+          document.medicineId,
+          (document.ingredients || []).map(ingredient => ({
+            id: ingredient.ingredientId,
+            name: ingredient.name,
+            strength: ingredient.strength ?? null,
+          })),
+        );
+      }
+
+      return result;
+    },
+
     async listForMatching() {
       const documents = await medicines
         .find(

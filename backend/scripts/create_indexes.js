@@ -1,11 +1,11 @@
 
-const { MongoClient } = require('mongodb');
 require('dotenv').config();
+
+const { MongoClient } = require('mongodb');
 
 const COLLECTIONS = [
   'Medicines',
   'Ingredients',
-  'MedicineIngredients',
   'Users',
   'UserAllergies',
   'VerificationLogs',
@@ -42,10 +42,7 @@ async function createIndexes() {
 
     await medicines.createIndex(
       { medicineId: 1 },
-      {
-        unique: true,
-        name: 'unique_medicine_id',
-      },
+      { unique: true, name: 'unique_medicine_id' },
     );
 
     await medicines.createIndex(
@@ -66,9 +63,7 @@ async function createIndexes() {
       { barcode: 1 },
       {
         unique: true,
-        partialFilterExpression: {
-          barcode: { $type: 'string' },
-        },
+        partialFilterExpression: { barcode: { $type: 'string' } },
         name: 'unique_medicine_barcode',
       },
     );
@@ -84,41 +79,16 @@ async function createIndexes() {
     );
 
     // Ingredients
-    await db.collection('Ingredients').createIndex(
+    const ingredients = db.collection('Ingredients');
+
+    await ingredients.createIndex(
       { ingredientId: 1 },
-      {
-        unique: true,
-        name: 'unique_ingredient_id',
-      },
+      { unique: true, name: 'unique_ingredient_id' },
     );
 
-    await db.collection('Ingredients').createIndex(
+    await ingredients.createIndex(
       { nameKey: 1 },
-      {
-        unique: true,
-        name: 'unique_ingredient_name_key',
-      },
-    );
-
-    // MedicineIngredients (legacy compatibility collection)
-    const medicineIngredients = db.collection('MedicineIngredients');
-
-    await medicineIngredients.createIndex(
-      { medicineId: 1 },
-      { name: 'medicine_ingredient_medicine_index' },
-    );
-
-    await medicineIngredients.createIndex(
-      { ingredientId: 1 },
-      { name: 'medicine_ingredient_ingredient_index' },
-    );
-
-    await medicineIngredients.createIndex(
-      { medicineId: 1, ingredientId: 1 },
-      {
-        unique: true,
-        name: 'unique_medicine_ingredient_pair',
-      },
+      { unique: true, name: 'unique_ingredient_name_key' },
     );
 
     // Users
@@ -132,10 +102,7 @@ async function createIndexes() {
 
     await userAllergies.createIndex(
       { allergyId: 1 },
-      {
-        unique: true,
-        name: 'unique_allergy_id',
-      },
+      { unique: true, name: 'unique_allergy_id' },
     );
 
     await userAllergies.createIndex(
@@ -145,10 +112,7 @@ async function createIndexes() {
 
     await userAllergies.createIndex(
       { userId: 1, ingredientId: 1 },
-      {
-        unique: true,
-        name: 'unique_user_allergy_pair',
-      },
+      { unique: true, name: 'unique_user_allergy_pair' },
     );
 
     // VerificationLogs
