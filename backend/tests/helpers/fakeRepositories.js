@@ -58,6 +58,10 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
       return medicines.filter((medicine) => medicine.name.toLowerCase().includes(search));
     },
 
+    async listForMatching() {
+      return medicines.map(({ id, name, manufacturer }) => ({ id, name, manufacturer }));
+    },
+
     async findByBarcode(barcode) {
       return medicines.find((m) => m.barcode === barcode) || null;
     },
