@@ -39,6 +39,12 @@ function createMedicineRepository(pool) {
       return rows.map(mapMedicine);
     },
 
+    /** Every medicine name, for matching the text read from a photo. */
+    async listForMatching() {
+      const [rows] = await pool.execute('SELECT medicine_id, name, manufacturer FROM Medicines');
+      return rows.map((r) => ({ id: r.medicine_id, name: r.name, manufacturer: r.manufacturer }));
+    },
+
     async findById(id) {
       const [rows] = await pool.execute(
         `SELECT medicine_id, name, manufacturer, registration_number, barcode, verified_status

@@ -5,6 +5,8 @@ function createVerifyRoutes({ verifyController, optionalAuth }) {
 
   router.post('/verify/barcode', optionalAuth, verifyController.verifyBarcode);
 
+  router.post('/verify/medicine', optionalAuth, verifyController.verifyMedicine);
+
   router.get('/medicines/search', optionalAuth, verifyController.searchMedicines);
 
   return router;

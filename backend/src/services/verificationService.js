@@ -1,4 +1,5 @@
 const { buildResult } = require('./resultBuilder');
+const AppError = require('../utils/AppError');
 
 function createVerificationService({
   medicineRepository,
@@ -32,6 +33,25 @@ function createVerificationService({
       const allergyAlerts = medicine
         ? await allergyService.getAlertsForMedicine(userId, medicine.id)
         : [];
+      const result = buildResult(medicine, allergyAlerts);
+
+      await saveLog({
+        userId,
+        medicine,
+        method: 'scan',
+        result: result.status,
+        allergyWarning: allergyAlerts.length > 0,
+      });
+
+      return result;
+    },
+
+    /** Verify the medicine the user picked from the photo candidates. */
+    async verifyById({ medicineId, userId = null }) {
+      const medicine = await medicineRepository.findById(medicineId);
+      if (!medicine) throw AppError.notFound('Medicine not found');
+
+      const allergyAlerts = await allergyService.getAlertsForMedicine(userId, medicine.id);
       const result = buildResult(medicine, allergyAlerts);
 
       await saveLog({

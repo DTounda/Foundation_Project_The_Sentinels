@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { getIngredients, getAllergies, addAllergy, deleteAllergy, hasToken } from '../services/api';
+import { COLORS } from '../constants/colors';
 
 const SEVERITIES = ['mild', 'moderate', 'severe'];
 
@@ -57,7 +58,7 @@ export default function AllergyProfileScreen({ navigation }) {
         renderItem={({ item }) => (
           <TouchableOpacity onPress={() => setSelected(item)}
             style={[s.row, selected?.id === item.id && s.rowSelected]}>
-            <Text>{item.name}</Text>
+            <Text style={s.rowText}>{item.name}</Text>
           </TouchableOpacity>
         )} />
 
@@ -65,7 +66,7 @@ export default function AllergyProfileScreen({ navigation }) {
       <View style={s.chips}>
         {SEVERITIES.map((v) => (
           <TouchableOpacity key={v} onPress={() => setSeverity(v)} style={[s.chip, severity === v && s.chipOn]}>
-            <Text style={severity === v && s.chipTextOn}>{v}</Text>
+            <Text style={[s.chipText, severity === v && s.chipTextOn]}>{v}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -75,10 +76,10 @@ export default function AllergyProfileScreen({ navigation }) {
 
       <Text style={s.label}>Saved allergies</Text>
       <FlatList data={allergies} keyExtractor={(a) => String(a.id)}
-        ListEmptyComponent={<Text>No allergies saved yet.</Text>}
+        ListEmptyComponent={<Text style={s.empty}>No allergies saved yet.</Text>}
         renderItem={({ item }) => (
           <View style={s.row}>
-            <Text style={{ flex: 1 }}>{item.ingredient} ({item.severity})</Text>
+            <Text style={s.rowTextFlex}>{item.ingredient} ({item.severity})</Text>
             <TouchableOpacity onPress={() => onDelete(item.id)}>
               <Text style={s.delete}>Delete</Text>
             </TouchableOpacity>
@@ -89,19 +90,43 @@ export default function AllergyProfileScreen({ navigation }) {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  title: { fontSize: 24, fontWeight: '700', marginBottom: 8 },
-  label: { fontWeight: '700', marginTop: 14, marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 10, marginBottom: 8 },
-  pickList: { maxHeight: 140, borderWidth: 1, borderColor: '#ccc', borderRadius: 10 },
-  row: { flexDirection: 'row', padding: 10, borderBottomWidth: 1, borderColor: '#eee' },
-  rowSelected: { backgroundColor: '#dff3ea' },
+  container: { flex: 1, padding: 20, backgroundColor: COLORS.white },
+  title: { fontSize: 21, fontWeight: '700', color: COLORS.ink, marginBottom: 8 },
+  label: { fontWeight: '600', fontSize: 13, color: COLORS.ink, marginTop: 14, marginBottom: 6 },
+  input: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 9,
+    padding: 10,
+    marginBottom: 8,
+    fontSize: 14,
+    color: COLORS.ink,
+  },
+  pickList: { maxHeight: 140, borderWidth: 1, borderColor: COLORS.border, borderRadius: 9 },
+  row: { flexDirection: 'row', padding: 10, borderBottomWidth: 1, borderColor: COLORS.border },
+  rowSelected: { backgroundColor: COLORS.primaryLight },
+  rowText: { fontSize: 14, color: COLORS.ink },
+  rowTextFlex: { flex: 1, fontSize: 14, color: COLORS.ink },
   chips: { flexDirection: 'row', gap: 8 },
-  chip: { borderWidth: 1, borderColor: '#ccc', borderRadius: 999, paddingVertical: 6, paddingHorizontal: 14 },
-  chipOn: { backgroundColor: '#12263a', borderColor: '#12263a' },
-  chipTextOn: { color: '#fff' },
-  button: { backgroundColor: '#0b7a54', padding: 12, borderRadius: 10, alignItems: 'center', marginTop: 12 },
-  buttonText: { color: '#fff', fontWeight: '700' },
-  delete: { color: '#a4261d', fontWeight: '700' },
-  error: { color: '#a4261d' },
+  chip: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingHorizontal: 13,
+  },
+  chipOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  chipText: { color: COLORS.slate, fontSize: 12 },
+  chipTextOn: { color: COLORS.white, fontWeight: '600' },
+  button: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    borderRadius: 9,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  buttonText: { color: COLORS.white, fontWeight: '600', fontSize: 14 },
+  delete: { color: COLORS.danger, fontWeight: '600', fontSize: 13 },
+  empty: { color: COLORS.muted, fontStyle: 'italic', fontSize: 13 },
+  error: { color: COLORS.danger, fontSize: 13 },
 });

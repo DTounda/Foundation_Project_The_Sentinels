@@ -3,15 +3,15 @@ import { View, ScrollView, Text, Pressable, ActivityIndicator, StyleSheet } from
 import DisclaimerBanner from '../components/DisclaimerBanner';
 import { STATUS_STYLES, FALLBACK_STATUS } from '../constants/statusStyles';
 import { normalizeResult } from '../utils/normalizeResult';
-import { getMedicineDetails } from '../services/api';
+import { getMedicineDetails, checkInteractions } from '../services/api';
+import { DOSAGE_NOTICE } from '../constants/safetyText';
+import { ROUTES } from '../navigation/routes';
+import { COLORS } from '../constants/colors';
 
 /**
  * Result screen (see the "Result" frame in the MediCheck Figma).
  * Receives route.params.result from the Search/Scan screen.
  * "Report this product" opens the Report screen with { medicineId, medicineName } as params.
- *
- * When the product is in our records we also load its ingredients from
- * GET /medicines/:id, so the user can see what is actually in the medicine.
  */
 export default function ResultScreen({ route, navigation }) {
   const result = normalizeResult(route.params?.result);
@@ -19,11 +19,13 @@ export default function ResultScreen({ route, navigation }) {
 
   const [ingredients, setIngredients] = useState([]);
   const [loadingIngredients, setLoadingIngredients] = useState(false);
+  const [interactions, setInteractions] = useState([]);
 
-  // Hooks must run on every render, so this sits above the early return below.
+  // Hooks run on every render, so this sits above the early return.
   useEffect(() => {
     if (!medicineId) {
       setIngredients([]);
+      setInteractions([]);
       return undefined;
     }
 
@@ -35,15 +37,19 @@ export default function ResultScreen({ route, navigation }) {
         if (!cancelled) setIngredients(data.ingredients);
       })
       .catch(() => {
-        // The verdict above is the part that matters. If the ingredient list
-        // cannot be loaded we leave it out rather than failing the whole screen.
+        // Never let a failed ingredient load break the verdict.
         if (!cancelled) setIngredients([]);
       })
       .finally(() => {
         if (!cancelled) setLoadingIngredients(false);
       });
 
-    // Stops a late answer from updating a screen the user already left.
+    // Empty until the backend's interaction check exists.
+    checkInteractions(medicineId).then((found) => {
+      if (!cancelled) setInteractions(found);
+    });
+
+    // Stops a late answer updating a screen the user left.
     return () => {
       cancelled = true;
     };
@@ -54,7 +60,7 @@ export default function ResultScreen({ route, navigation }) {
       <View style={styles.container}>
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>No result to show yet. Go back and search for a medicine.</Text>
-          <Pressable style={styles.secondaryButton} onPress={() => navigation.navigate('SearchScan')} accessibilityRole="button">
+          <Pressable style={styles.secondaryButton} onPress={() => navigation.navigate(ROUTES.TABS, { screen: ROUTES.HOME })} accessibilityRole="button">
             <Text style={styles.secondaryButtonText}>Back to search</Text>
           </Pressable>
         </View>
@@ -92,12 +98,24 @@ export default function ResultScreen({ route, navigation }) {
           </View>
         )}
 
+        {/* Same slot as allergy alerts, for clashes with current medicines. */}
+        {interactions.length > 0 && (
+          <View style={styles.interactionsCard} testID="interaction-alerts">
+            {interactions.map((item) => (
+              <Text key={item.withMedicationName} style={styles.interactionText}>
+                May interact with {item.withMedicationName}, which you listed under your medicines.
+                Talk to your doctor or pharmacist before use.
+              </Text>
+            ))}
+          </View>
+        )}
+
         {medicineId ? (
           <View style={styles.ingredientsCard} testID="ingredients">
             <Text style={styles.ingredientsTitle}>What is in this medicine</Text>
 
             {loadingIngredients ? (
-              <ActivityIndicator size="small" color="#475467" />
+              <ActivityIndicator size="small" color={COLORS.slate} />
             ) : ingredients.length > 0 ? (
               ingredients.map((ingredient) => (
                 <Text key={ingredient.id ?? ingredient.name} style={styles.ingredientText}>
@@ -113,6 +131,11 @@ export default function ResultScreen({ route, navigation }) {
           </View>
         ) : null}
 
+        {/* Shown on every result, including Verified. */}
+        <View style={styles.dosageCard}>
+          <Text style={styles.dosageText}>{DOSAGE_NOTICE}</Text>
+        </View>
+
         <Pressable
           style={styles.secondaryButton}
           accessibilityRole="button"
@@ -121,7 +144,7 @@ export default function ResultScreen({ route, navigation }) {
           <Text style={styles.secondaryButtonText}>Report this product</Text>
         </Pressable>
 
-        <Pressable style={styles.secondaryButton} accessibilityRole="button" onPress={() => navigation.navigate('SearchScan')}>
+        <Pressable style={styles.secondaryButton} accessibilityRole="button" onPress={() => navigation.navigate(ROUTES.TABS, { screen: ROUTES.HOME })}>
           <Text style={styles.secondaryButtonText}>Back to search</Text>
         </Pressable>
       </ScrollView>
@@ -131,33 +154,58 @@ export default function ResultScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
-  content: { padding: 20, gap: 16 },
-  medicineName: { fontSize: 22, fontWeight: '700', color: '#101828' },
-  statusCard: { borderWidth: 2, borderRadius: 12, padding: 20, gap: 8 },
-  statusLabel: { fontSize: 26, fontWeight: '800' },
-  message: { fontSize: 16, color: '#344054', lineHeight: 22 },
-  alertsCard: { borderWidth: 1, borderColor: '#F5C2C0', backgroundColor: '#FFF6F5', borderRadius: 12, padding: 16, gap: 10 },
-  alertText: { fontSize: 15, color: '#7A271A', lineHeight: 21 },
-  ingredientsCard: {
+  container: { flex: 1, backgroundColor: COLORS.white },
+  content: { padding: 20, gap: 14 },
+  medicineName: { fontSize: 21, fontWeight: '700', color: COLORS.ink },
+  statusCard: { borderWidth: 1.5, borderRadius: 14, padding: 18, gap: 6 },
+  statusLabel: { fontSize: 23, fontWeight: '700' },
+  message: { fontSize: 15, color: COLORS.slate, lineHeight: 21 },
+  alertsCard: {
     borderWidth: 1,
-    borderColor: '#E4E7EC',
-    backgroundColor: '#FCFCFD',
+    borderColor: '#F3C9C4',
+    backgroundColor: COLORS.dangerBg,
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     gap: 8,
   },
-  ingredientsTitle: { fontSize: 15, fontWeight: '700', color: '#101828' },
-  ingredientText: { fontSize: 15, color: '#344054', lineHeight: 21 },
-  ingredientsEmpty: { fontSize: 14, color: '#667085', fontStyle: 'italic' },
+  alertText: { fontSize: 14, color: '#7A2E24', lineHeight: 20 },
+  interactionsCard: {
+    borderWidth: 1,
+    borderColor: '#F0D8A8',
+    backgroundColor: COLORS.warningBg,
+    borderRadius: 12,
+    padding: 14,
+    gap: 8,
+  },
+  interactionText: { fontSize: 14, color: '#7A5A10', lineHeight: 20 },
+  ingredientsCard: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    padding: 14,
+    gap: 8,
+  },
+  ingredientsTitle: { fontSize: 14, fontWeight: '700', color: COLORS.ink },
+  ingredientText: { fontSize: 14, color: COLORS.slate, lineHeight: 20 },
+  ingredientsEmpty: { fontSize: 13, color: COLORS.muted, fontStyle: 'italic' },
+  dosageCard: {
+    borderWidth: 1,
+    borderColor: COLORS.primaryLight,
+    backgroundColor: COLORS.primarySoft,
+    borderRadius: 12,
+    padding: 13,
+  },
+  dosageText: { fontSize: 13, color: COLORS.primaryDark, lineHeight: 19 },
   secondaryButton: {
-    backgroundColor: '#F2F4F7',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     borderRadius: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: 12,
     alignItems: 'center',
   },
-  secondaryButtonText: { fontSize: 16, fontWeight: '600', color: '#101828' },
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 },
-  emptyText: { fontSize: 16, color: '#475467', textAlign: 'center' },
+  secondaryButtonText: { fontSize: 14, fontWeight: '600', color: COLORS.ink },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 14 },
+  emptyText: { fontSize: 15, color: COLORS.slate, textAlign: 'center' },
 });
