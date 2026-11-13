@@ -74,6 +74,10 @@ Body: `{ "image": "<base64 JPEG, no data: prefix>" }`. Up to 5 MB. The photo is 
 ```
 `confidence` is from 0 to 1. 422 `UNREADABLE` when no text is found or nothing matches a medicine. 400 if `image` is missing or not base64.
 
+### `POST /verify/medicine`  (token optional)
+Body: `{ "medicineId": 1 }`. Used after the user picks one of the photo candidates.
+200: the same shape as `POST /verify/barcode` (status, message, medicine, allergyAlerts, disclaimer). 404 if the medicine is unknown, 400 if `medicineId` is not a positive whole number.
+
 ## Allergy profile (token required, each user sees only their own)
 
 ### `GET /ingredients?q=amox`
