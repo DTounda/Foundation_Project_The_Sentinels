@@ -32,19 +32,15 @@ Body: `{ "fullName": "Aline Uwase", "email": "aline@example.com", "password": "m
 409 if the email already exists. New accounts are always role `user`.
 
 ### `POST /auth/login`
-Body: `{ "medicineId": 1, "description": "Packaging looks different", "location": "Kimironko" }`
-- `medicineId` is optional. Send it when the product is in our records. If the product is not in our records, leave it out and write the product name in `description`.
-- `description` is required, 5 to 1000 characters.
-- `location` is optional, up to 150 characters.
-
-201: `{ "report": { "id": 1, "status": "new" } }`
-400 `VALIDATION_ERROR` if `description` is missing or out of range, or if `medicineId` is sent but is not a positive integer. 404 if `medicineId` is sent but unknown.
+Body: `{ "email": "aline@example.com", "password": "..." }`
+200: `{ "user": { "id": 1, "fullName": "...", "email": "...", "role": "user" }, "token": "..." }`
+401 `UNAUTHORIZED` "Invalid email or password". The message is the same whether the email or the password is wrong.
 
 ## Health
 
 ### `GET /health`
 200: `{ "status": "ok", "service": "medicheck-api", "database": "up", "uptimeSeconds": 12, "timestamp": "..." }`
-503 with `"status": "degraded", "database": "down"` when MySQL is unreachable.
+503 with `"status": "degraded", "database": "down"` when the database is unreachable.
 
 ## Verify
 
@@ -77,13 +73,9 @@ Public list used by the allergy picker. 200: `{ "ingredients": [ { "id": 2, "nam
 200: `{ "allergies": [ { "id": 1, "ingredientId": 2, "ingredient": "Amoxicillin", "severity": "severe" } ] }`
 
 ### `POST /allergies`
-Body: `{ "medicineId": 1, "description": "Packaging looks different", "location": "Kimironko" }`
-- `medicineId` is optional. Send it when the product is in our records. If the product is not in our records, leave it out and write the product name in `description`.
-- `description` is required, 5 to 1000 characters.
-- `location` is optional, up to 150 characters.
-
-201: `{ "report": { "id": 1, "status": "new" } }`
-400 `VALIDATION_ERROR` if `description` is missing or out of range, or if `medicineId` is sent but is not a positive integer. 404 if `medicineId` is sent but unknown.
+Body: `{ "ingredientId": 2, "severity": "severe" }`. Severity is `mild`, `moderate` or `severe`.
+201: `{ "id": 1, "ingredientId": 2, "ingredient": "Amoxicillin", "severity": "severe" }`
+400 if the severity is invalid, 404 if the ingredient is unknown, 409 if it is already in your list.
 
 ### `DELETE /allergies/:id`
 204. 404 if it is not yours.
@@ -91,15 +83,20 @@ Body: `{ "medicineId": 1, "description": "Packaging looks different", "location"
 ### `GET /allergies/check?medicineId=1`
 200: `{ "medicineId": 1, "hasAlert": true, "allergyAlerts": [ ... ], "disclaimer": "..." }`
 
-## Planned by teammates (shapes agreed here so the app can start)
+## Medicines and reports
 
-### `GET /medicines/search?q=parac`  (Olivier)
+### `GET /medicines/search?q=parac`  (token optional)
 200: `{ "results": [ { "status": "verified", "message": "...", "medicine": { ... }, "allergyAlerts": [] } ], "disclaimer": "..." }`
-Token optional, same allergy behaviour as `/verify/barcode`. `q` needs at least 2 characters.
+Same allergy behaviour as `/verify/barcode`. `q` needs at least 2 characters.
 
-### `GET /medicines/:id`  (Ephraim)
+### `GET /medicines/:id`
 Details for the result screen. 200: `{ "medicine": { ...same fields as above, "verifiedStatus": "verified" }, "ingredients": [ { "id": 1, "name": "Paracetamol", "strength": "500 mg" } ], "disclaimer": "..." }`. 404 if unknown.
 
-### `POST /reports`  (Ephraim, token optional)
+### `POST /reports`  (token optional)
 Body: `{ "medicineId": 1, "description": "Packaging looks different", "location": "Kimironko" }`
 201: `{ "report": { "id": 1, "status": "new" } }`
+- `medicineId` is optional. Send it when the product is in our records. If the product is not in our records, leave it out and write the product name in `description`.
+- `description` is required, 5 to 1000 characters.
+- `location` is optional, up to 150 characters.
+
+400 `VALIDATION_ERROR` if `description` is missing or out of range, or if `medicineId` is sent but is not a positive integer. 404 if `medicineId` is sent but unknown.
