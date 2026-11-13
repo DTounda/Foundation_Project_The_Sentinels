@@ -15,6 +15,7 @@ function createApp({
   checkDatabase = async () => true,
   repositories = null,
   enableRateLimit = config.nodeEnv !== 'test',
+  ocrService,
 } = {}) {
   const app = express();
 
@@ -25,6 +26,7 @@ function createApp({
       origin: config.corsOrigin === '*' ? '*' : config.corsOrigin.split(',').map((o) => o.trim()),
     }),
   );
+  app.use('/api/v1/verify/photo', express.json({ limit: '5mb' }));
   app.use(express.json({ limit: '10kb' }));
 
   const limiter = enableRateLimit
@@ -33,7 +35,7 @@ function createApp({
   const authLimiter = enableRateLimit
     ? createRateLimiter({ windowMs: 15 * 60 * 1000, limit: 20 })
     : passThrough;
-  app.use('/api/v1', limiter, buildRouter({ checkDatabase, repositories, config, authLimiter }));
+  app.use('/api/v1', limiter, buildRouter({ checkDatabase, repositories, config, authLimiter, ocrService }));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

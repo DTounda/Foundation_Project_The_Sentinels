@@ -1,10 +1,9 @@
+
 const { MongoClient } = require('mongodb');
 const config = require('./env');
-
 const dns = require('dns');
 
-// Some internet providers cannot answer the SRV lookup that mongodb+srv:// needs.
-// Use public DNS servers for that lookup.
+// Public DNS servers for MongoDB SRV lookups.
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 let client;
@@ -17,12 +16,15 @@ async function connectMongo() {
     await client.connect();
     db = client.db(config.mongo.dbName);
   }
+
   return db;
 }
 
-/** Returns true when Mongo answers a ping. Used by the health check. */
+/** Ping MongoDB to verify that the database is reachable. */
 async function checkMongo() {
   try {
+    if (!db) return false;
+
     await db.command({ ping: 1 });
     return true;
   } catch {
@@ -30,6 +32,7 @@ async function checkMongo() {
   }
 }
 
+/** Close the MongoDB connection. */
 async function closeMongo() {
   if (client) {
     await client.close();

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { getIngredients, getAllergies, addAllergy, deleteAllergy, hasToken } from '../services/api';
 import { COLORS } from '../constants/colors';
+import { LoadingIndicator, ErrorMessage } from '../components/LoadingAndError';
 
 const SEVERITIES = ['mild', 'moderate', 'severe'];
 
@@ -12,6 +13,8 @@ export default function AllergyProfileScreen({ navigation }) {
   const [selected, setSelected] = useState(null);
   const [severity, setSeverity] = useState('mild');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   function handleError(e) {
     if (e.code === 'UNAUTHORIZED') navigation.navigate('Login', { redirectTo: 'AllergyProfile' });
@@ -19,7 +22,11 @@ export default function AllergyProfileScreen({ navigation }) {
   }
 
   async function loadAllergies() {
-    try { setAllergies(await getAllergies()); } catch (e) { handleError(e); }
+    setLoading(true);
+    setLoadError('');
+    try { setAllergies(await getAllergies()); }
+    catch (e) { if (e.code === 'UNAUTHORIZED') handleError(e); else setLoadError(e.message || 'Could not load your allergies.'); }
+    finally { setLoading(false); }
   }
 
   useEffect(() => {
@@ -50,6 +57,8 @@ export default function AllergyProfileScreen({ navigation }) {
   return (
     <View style={s.container}>
       <Text style={s.title}>My allergies</Text>
+      {loading && <LoadingIndicator text="Loading your allergies..." />}
+      {!!loadError && <ErrorMessage message={loadError} onRetry={loadAllergies} />}
       {!!error && <Text style={s.error}>{error}</Text>}
 
       <Text style={s.label}>1. Find an ingredient</Text>

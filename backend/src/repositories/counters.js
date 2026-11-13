@@ -13,4 +13,23 @@ async function nextId(db, name) {
   return counter.seq;
 }
 
-module.exports = { nextId };
+/**
+ * Reserve `count` consecutive ids in ONE query.
+ * Returns an array like [41, 42, 43] for count = 3.
+ */
+async function nextIds(db, name, count) {
+  if (count <= 0) return [];
+
+  const counter = await db
+    .collection('counters')
+    .findOneAndUpdate(
+      { _id: name },
+      { $inc: { seq: count } },
+      { upsert: true, returnDocument: 'after' },
+    );
+
+  const last = counter.seq;
+  return Array.from({ length: count }, (_, i) => last - count + 1 + i);
+}
+
+module.exports = { nextId, nextIds };
