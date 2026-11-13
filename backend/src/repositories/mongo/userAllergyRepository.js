@@ -7,34 +7,16 @@ function createMongoUserAllergyRepository(db) {
   const ingredients = db.collection('Ingredients');
 
   return {
-    /** List only the allergies belonging to this user. */
     async listByUser(userId) {
       const allergies = await userAllergies
         .find({ userId: Number(userId) })
         .toArray();
 
-      if (allergies.length === 0) return [];
-
-      const ingredientIds = allergies.map(
-        allergy => allergy.ingredientId,
-      );
-
-      const ingredientDocuments = await ingredients
-        .find({ id: { $in: ingredientIds } })
-        .toArray();
-
-      const ingredientById = new Map(
-        ingredientDocuments.map(ingredient => [
-          ingredient.id,
-          ingredient.name,
-        ]),
-      );
-
       return allergies
         .map(allergy => ({
-          id: allergy.id,
+          id: allergy.allergyId,
           ingredientId: allergy.ingredientId,
-          ingredient: ingredientById.get(allergy.ingredientId) || null,
+          ingredient: allergy.ingredientName,
           severity: allergy.severity,
         }))
         .sort((a, b) =>
@@ -42,7 +24,6 @@ function createMongoUserAllergyRepository(db) {
         );
     },
 
-    /** Find an allergy only within the specified user's records. */
     async findByUserAndIngredient(userId, ingredientId) {
       const allergy = await userAllergies.findOne({
         userId: Number(userId),
@@ -51,35 +32,39 @@ function createMongoUserAllergyRepository(db) {
 
       if (!allergy) return null;
 
-      const ingredient = await ingredients.findOne({
-        id: allergy.ingredientId,
-      });
-
       return {
-        id: allergy.id,
+        id: allergy.allergyId,
         ingredientId: allergy.ingredientId,
-        ingredient: ingredient ? ingredient.name : null,
+        ingredient: allergy.ingredientName,
         severity: allergy.severity,
       };
     },
 
-    /** Add an allergy with a shared numeric ID. */
     async add(userId, ingredientId, severity) {
       const numericUserId = Number(userId);
       const numericIngredientId = Number(ingredientId);
 
+      const ingredient = await ingredients.findOne({
+        ingredientId: numericIngredientId,
+      });
+
+      if (!ingredient) {
+        throw AppError.notFound('Ingredient not found');
+      }
+
       try {
-        const id = await nextId(db, 'userAllergies');
+        const allergyId = await nextId(db, 'userAllergies');
 
         await userAllergies.insertOne({
-          id,
+          allergyId,
           userId: numericUserId,
           ingredientId: numericIngredientId,
+          ingredientName: ingredient.name,
           severity,
           createdAt: new Date(),
         });
 
-        return id;
+        return allergyId;
       } catch (err) {
         if (err.code === 11000) {
           throw AppError.conflict(
@@ -91,10 +76,9 @@ function createMongoUserAllergyRepository(db) {
       }
     },
 
-    /** Delete only an allergy owned by the specified user. */
     async remove(userId, allergyId) {
       const result = await userAllergies.deleteOne({
-        id: Number(allergyId),
+        allergyId: Number(allergyId),
         userId: Number(userId),
       });
 

@@ -3,23 +3,21 @@ function createMongoIngredientRepository(db) {
   const ingredients = db.collection('Ingredients');
 
   return {
-    /** Find one ingredient by its numeric API ID. */
     async findById(id) {
       const document = await ingredients.findOne({
-        id: Number(id),
+        ingredientId: Number(id),
       });
 
       if (!document) return null;
 
       return {
-        id: document.id,
+        id: document.ingredientId,
         name: document.name,
       };
     },
 
-    /** Search ingredients by name, returning at most 100. */
     async list(query = '') {
-      const escapedQuery = String(query).trim().replace(
+      const escapedQuery = String(query || '').trim().replace(
         /[.*+?^${}()|[\]\\]/g,
         '\\$&',
       );
@@ -35,7 +33,7 @@ function createMongoIngredientRepository(db) {
         .toArray();
 
       return documents.map(document => ({
-        id: document.id,
+        id: document.ingredientId,
         name: document.name,
       }));
     },

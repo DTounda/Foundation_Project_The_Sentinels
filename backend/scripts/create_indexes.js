@@ -1,3 +1,4 @@
+
 const { MongoClient } = require('mongodb');
 require('dotenv').config();
 
@@ -40,6 +41,14 @@ async function createIndexes() {
     const medicines = db.collection('Medicines');
 
     await medicines.createIndex(
+      { medicineId: 1 },
+      {
+        unique: true,
+        name: 'unique_medicine_id',
+      },
+    );
+
+    await medicines.createIndex(
       { fdaSerialNumber: 1 },
       {
         unique: true,
@@ -54,22 +63,44 @@ async function createIndexes() {
     );
 
     await medicines.createIndex(
-      { name: 1 },
-      { name: 'medicine_name_index' },
+      { barcode: 1 },
+      {
+        unique: true,
+        partialFilterExpression: {
+          barcode: { $type: 'string' },
+        },
+        name: 'unique_medicine_barcode',
+      },
     );
 
     await medicines.createIndex(
-      { brandName: 'text', genericName: 'text' },
-      { name: 'medicine_text_search_index' },
+      { brandName: 1 },
+      { name: 'medicine_brand_name_index' },
+    );
+
+    await medicines.createIndex(
+      { genericName: 1 },
+      { name: 'medicine_generic_name_index' },
     );
 
     // Ingredients
     await db.collection('Ingredients').createIndex(
-      { normalizedName: 1 },
-      { unique: true, name: 'unique_normalized_ingredient' },
+      { ingredientId: 1 },
+      {
+        unique: true,
+        name: 'unique_ingredient_id',
+      },
     );
 
-    // MedicineIngredients
+    await db.collection('Ingredients').createIndex(
+      { nameKey: 1 },
+      {
+        unique: true,
+        name: 'unique_ingredient_name_key',
+      },
+    );
+
+    // MedicineIngredients (legacy compatibility collection)
     const medicineIngredients = db.collection('MedicineIngredients');
 
     await medicineIngredients.createIndex(
@@ -98,6 +129,14 @@ async function createIndexes() {
 
     // UserAllergies
     const userAllergies = db.collection('UserAllergies');
+
+    await userAllergies.createIndex(
+      { allergyId: 1 },
+      {
+        unique: true,
+        name: 'unique_allergy_id',
+      },
+    );
 
     await userAllergies.createIndex(
       { userId: 1 },

@@ -26,6 +26,10 @@ const {
   createMongoVerificationLogRepository,
 } = require('./mongo/verificationLogRepository');
 
+const {
+  createMongoReportRepository,
+} = require('./mongo/reportRepository');
+
 function createMysqlRepositories(pool) {
   return {
     medicineRepository: createMedicineRepository(pool),
@@ -44,6 +48,7 @@ function createMongoRepositories(db) {
     userAllergyRepository: createMongoUserAllergyRepository(db),
     userRepository: createMongoUserRepository(db),
     verificationLogRepository: createMongoVerificationLogRepository(db),
+    reportRepository: createMongoReportRepository(db),
   };
 }
 

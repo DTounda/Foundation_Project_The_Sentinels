@@ -3,8 +3,8 @@ function mapMedicine(document) {
   if (!document) return null;
 
   return {
-    id: document.id,
-    name: document.name || document.brandName || document.genericName,
+    id: document.medicineId,
+    name: document.brandName || document.genericName,
     manufacturer: document.manufacturer,
     registrationNumber: document.registrationNumber,
     barcode: document.barcode ?? null,
@@ -14,8 +14,6 @@ function mapMedicine(document) {
 
 function createMongoMedicineRepository(db) {
   const medicines = db.collection('Medicines');
-  const medicineIngredients = db.collection('MedicineIngredients');
-  const ingredients = db.collection('Ingredients');
 
   return {
     async findByBarcode(barcode) {
@@ -36,12 +34,11 @@ function createMongoMedicineRepository(db) {
       const documents = await medicines
         .find({
           $or: [
-            { name: searchPattern },
             { brandName: searchPattern },
             { genericName: searchPattern },
           ],
         })
-        .sort({ name: 1, brandName: 1 })
+        .sort({ brandName: 1 })
         .limit(20)
         .toArray();
 
@@ -49,43 +46,52 @@ function createMongoMedicineRepository(db) {
     },
 
     async findById(id) {
-      const document = await medicines.findOne({ id: Number(id) });
+      const document = await medicines.findOne({
+        medicineId: Number(id),
+      });
+
       return mapMedicine(document);
     },
 
     async getIngredients(medicineId) {
-      const links = await medicineIngredients
-        .find({ medicineId: Number(medicineId) })
-        .toArray();
-
-      if (links.length === 0) return [];
-
-      const ingredientIds = links.map(link => link.ingredientId);
-
-      const ingredientDocuments = await ingredients
-        .find({ id: { $in: ingredientIds } })
-        .toArray();
-
-      const ingredientById = new Map(
-        ingredientDocuments.map(ingredient => [
-          ingredient.id,
-          ingredient,
-        ]),
+      const document = await medicines.findOne(
+        { medicineId: Number(medicineId) },
+        { projection: { ingredients: 1 } },
       );
 
-      return links
-        .map(link => {
-          const ingredient = ingredientById.get(link.ingredientId);
+      if (!document || !Array.isArray(document.ingredients)) {
+        return [];
+      }
 
-          if (!ingredient) return null;
+      return document.ingredients.map(ingredient => ({
+        id: ingredient.ingredientId,
+        name: ingredient.name,
+        strength: ingredient.strength ?? null,
+      }));
+    },
 
-          return {
-            id: ingredient.id,
-            name: ingredient.name,
-            strength: link.strength ?? null,
-          };
-        })
-        .filter(Boolean);
+    async listForMatching() {
+      const documents = await medicines
+        .find(
+          {},
+          {
+            projection: {
+              medicineId: 1,
+              brandName: 1,
+              genericName: 1,
+              manufacturer: 1,
+            },
+          },
+        )
+        .sort({ brandName: 1 })
+        .toArray();
+
+      return documents.map(document => ({
+        id: document.medicineId,
+        name: document.brandName || document.genericName,
+        genericName: document.genericName,
+        manufacturer: document.manufacturer,
+      }));
     },
   };
 }
