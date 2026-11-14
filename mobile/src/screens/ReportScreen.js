@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { searchMedicines, submitReport } from '../services/api';
+import { LoadingIndicator, ErrorMessage } from '../components/LoadingAndError';
 
 export default function ReportScreen({ route }) {
   const params = route?.params || {};
@@ -14,18 +15,24 @@ export default function ReportScreen({ route }) {
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [retry, setRetry] = useState('');
 
   async function onSearch() {
     setError('');
+    setRetry('');
     if (query.trim().length < 2) return setError('Type at least 2 characters to search.');
     try {
+      setSearching(true);
       const r = await searchMedicines(query.trim());
       setResults(r.map((x) => x.medicine).filter(Boolean));
-    } catch (e) { setError(e.message); }
+      setSearching(false);
+    } catch (e) { setError(e.message); setRetry('search'); setSearching(false); }
   }
 
   async function submit() {
     setError('');
+    setRetry('');
     if (!medicine && !productName.trim()) {
       return setError('Pick a medicine from the search, or type the product name.');
     }
@@ -42,7 +49,7 @@ export default function ReportScreen({ route }) {
         location: location.trim() || undefined,
       });
       setDone(true);
-    } catch (e) { setError(e.message); }
+    } catch (e) { setError(e.message); setRetry('submit'); }
     finally { setLoading(false); }
   }
 
@@ -77,6 +84,7 @@ export default function ReportScreen({ route }) {
           <TextInput style={s.input} placeholder="Search the medicine name" value={query}
             onChangeText={setQuery} onSubmitEditing={onSearch} />
           <TouchableOpacity style={s.secondary} onPress={onSearch}><Text>Search</Text></TouchableOpacity>
+          {searching && <LoadingIndicator text='Searching...' />}
           {results.map((m) => (
             <TouchableOpacity key={m.id} style={s.row} onPress={() => setMedicine(m)}>
               <Text>{m.name}</Text>
@@ -91,7 +99,8 @@ export default function ReportScreen({ route }) {
       <TextInput style={s.input} placeholder="Where did you find it? (optional)" value={location} onChangeText={setLocation} />
       <TextInput style={[s.input, s.multiline]} placeholder="What looks suspicious? *" multiline
         value={description} onChangeText={setDescription} />
-      {!!error && <Text style={s.error}>{error}</Text>}
+      {loading && <LoadingIndicator text='Sending your report...' />}
+      {!!error && <ErrorMessage message={error} onRetry={retry === 'search' ? onSearch : retry === 'submit' ? submit : undefined} />}
       <TouchableOpacity style={s.button} onPress={submit} disabled={loading}>
         <Text style={s.buttonText}>{loading ? 'Sending...' : 'Submit report'}</Text>
       </TouchableOpacity>
