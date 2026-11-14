@@ -1,3 +1,4 @@
+
 function mapMedicine(document) {
   if (!document) return null;
 
@@ -22,19 +23,13 @@ function createMongoMedicineRepository(db) {
     },
 
     async searchByName(query) {
-      const escapedQuery = String(query || '')
-        .trim()
-        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const searchTerm = String(query || '').trim();
 
-      if (!escapedQuery) return [];
-
-      const searchPattern = new RegExp(escapedQuery, 'i');
+      if (!searchTerm) return [];
 
       const documents = await medicines
-        .find({
-          $or: [{ brandName: searchPattern }, { genericName: searchPattern }],
-        })
-        .sort({ brandName: 1 })
+        .find({ $text: { $search: searchTerm } })
+        .sort({ score: { $meta: 'textScore' } })
         .limit(20)
         .toArray();
 
@@ -71,12 +66,19 @@ function createMongoMedicineRepository(db) {
      * Returns a Map: medicineId -> ingredients array.
      */
     async getIngredientsForMedicines(medicineIds) {
-      const ids = [...new Set((medicineIds || []).map(Number).filter(Number.isFinite))];
+      const ids = [
+        ...new Set(
+          (medicineIds || []).map(Number).filter(Number.isFinite),
+        ),
+      ];
 
       if (ids.length === 0) return new Map();
 
       const documents = await medicines
-        .find({ medicineId: { $in: ids } }, { projection: { medicineId: 1, ingredients: 1 } })
+        .find(
+          { medicineId: { $in: ids } },
+          { projection: { medicineId: 1, ingredients: 1 } },
+        )
         .toArray();
 
       const result = new Map(ids.map((id) => [id, []]));
