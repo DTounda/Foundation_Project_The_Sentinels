@@ -78,6 +78,12 @@ async function createIndexes() {
       { name: 'medicine_generic_name_index' },
     );
 
+    // Text search across both brand and generic names.
+    await medicines.createIndex(
+      { brandName: 'text', genericName: 'text' },
+      { name: 'idx_medicines_brand_generic_text' },
+    );
+
     // Ingredients
     const ingredients = db.collection('Ingredients');
 
@@ -162,7 +168,7 @@ async function createIndexes() {
   }
 }
 
-createIndexes().catch(error => {
+createIndexes().catch((error) => {
   console.error('Index creation failed:', error.message);
   process.exitCode = 1;
 });
