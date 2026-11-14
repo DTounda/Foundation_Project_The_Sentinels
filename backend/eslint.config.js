@@ -19,4 +19,5 @@ module.exports = [
       'no-var': 'error',
     },
   },
+  { files: ['scripts/**/*.js'], rules: { 'no-console': 'off' } },
 ];
