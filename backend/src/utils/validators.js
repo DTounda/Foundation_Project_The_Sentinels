@@ -56,6 +56,29 @@ function parseFullName(value) {
   return value.trim();
 }
 
+function parsePhone(value) {
+  if (typeof value !== 'string') throw AppError.validation('phone is required');
+  const phone = value.trim();
+  if (!/^\+?[0-9 ()-]{7,20}$/.test(phone)) {
+    throw AppError.validation('phone must be a valid phone number');
+  }
+  return phone;
+}
+
+function parseContactName(value, fieldName = 'name') {
+  if (typeof value !== 'string' || value.trim().length < 2 || value.trim().length > 150) {
+    throw AppError.validation(`${fieldName} must be between 2 and 150 characters`);
+  }
+  return value.trim();
+}
+
+function parseMedicationName(value) {
+  if (typeof value !== 'string' || value.trim().length < 1 || value.trim().length > 150) {
+    throw AppError.validation('name must be between 1 and 150 characters');
+  }
+  return value.trim();
+}
+
 function parseSeverity(value) {
   if (!SEVERITIES.includes(value)) {
     throw AppError.validation(`severity must be one of: ${SEVERITIES.join(', ')}`);
@@ -114,6 +137,9 @@ module.exports = {
   parseEmail,
   parsePassword,
   parseFullName,
+  parsePhone,
+  parseContactName,
+  parseMedicationName,
   parseSeverity,
   parseReportDescription,
   parseOptionalLocation,
