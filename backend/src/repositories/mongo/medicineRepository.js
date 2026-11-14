@@ -9,6 +9,7 @@ function mapMedicine(document) {
     registrationNumber: document.registrationNumber,
     barcode: document.barcode ?? null,
     verifiedStatus: document.verifiedStatus ?? null,
+    ingredientsKnown: document.ingredientsKnown !== false,
   };
 }
 

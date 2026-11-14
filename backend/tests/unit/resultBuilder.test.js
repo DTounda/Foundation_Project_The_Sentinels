@@ -1,5 +1,9 @@
 const { classifyMedicine, buildResult, STATUS } = require('../../src/services/resultBuilder');
-const { DISCLAIMER, RESULT_MESSAGES } = require('../../src/messages/resultMessages');
+const {
+  DISCLAIMER,
+  RESULT_MESSAGES,
+  INGREDIENTS_UNKNOWN,
+} = require('../../src/messages/resultMessages');
 
 const base = {
   id: 1,
@@ -46,6 +50,20 @@ describe('buildResult', () => {
     const { medicine } = buildResult({ ...base, verifiedStatus: 'verified' });
     expect(medicine).not.toHaveProperty('verifiedStatus');
     expect(medicine.name).toBe(base.name);
+  });
+
+  it('says so when we do not know the ingredients, so no alerts never looks like "safe"', () => {
+    const result = buildResult({ ...base, verifiedStatus: 'verified', ingredientsKnown: false });
+    expect(result.ingredientsKnown).toBe(false);
+    expect(result.ingredientsNote).toBe(INGREDIENTS_UNKNOWN);
+  });
+
+  it('has no note when the ingredients are known, or when there is no record', () => {
+    expect(buildResult({ ...base, verifiedStatus: 'verified' })).toMatchObject({
+      ingredientsKnown: true,
+      ingredientsNote: null,
+    });
+    expect(buildResult(null)).toMatchObject({ ingredientsKnown: false, ingredientsNote: null });
   });
 
   it('approved messages inform and never instruct (Mr Apana feedback)', () => {
