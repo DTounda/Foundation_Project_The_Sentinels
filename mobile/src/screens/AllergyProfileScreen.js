@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, ScrollView, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { getIngredients, getAllergies, addAllergy, deleteAllergy, hasToken } from '../services/api';
 import { COLORS } from '../constants/colors';
 import { LoadingIndicator, ErrorMessage } from '../components/LoadingAndError';
@@ -55,7 +55,8 @@ export default function AllergyProfileScreen({ navigation }) {
   }
 
   return (
-    <View style={s.container}>
+    // One scrolling page, so neither list gets squeezed when the keyboard is open.
+    <ScrollView style={s.screen} contentContainerStyle={s.container} keyboardShouldPersistTaps="handled">
       <Text style={s.title}>My allergies</Text>
       {loading && <LoadingIndicator text="Loading your allergies..." />}
       {!!loadError && <ErrorMessage message={loadError} onRetry={loadAllergies} />}
@@ -63,13 +64,15 @@ export default function AllergyProfileScreen({ navigation }) {
 
       <Text style={s.label}>1. Find an ingredient</Text>
       <TextInput style={s.input} placeholder="e.g. amox" value={query} onChangeText={setQuery} autoCapitalize="none" />
-      <FlatList style={s.pickList} data={ingredients} keyExtractor={(i) => String(i.id)}
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => setSelected(item)}
+      {/* Its own small scroll box inside the page; nestedScrollEnabled is needed on Android. */}
+      <ScrollView style={s.pickList} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+        {ingredients.map((item) => (
+          <TouchableOpacity key={String(item.id)} onPress={() => setSelected(item)}
             style={[s.row, selected?.id === item.id && s.rowSelected]}>
             <Text style={s.rowText}>{item.name}</Text>
           </TouchableOpacity>
-        )} />
+        ))}
+      </ScrollView>
 
       <Text style={s.label}>2. Choose severity</Text>
       <View style={s.chips}>
@@ -84,22 +87,25 @@ export default function AllergyProfileScreen({ navigation }) {
       </TouchableOpacity>
 
       <Text style={s.label}>Saved allergies</Text>
-      <FlatList data={allergies} keyExtractor={(a) => String(a.id)}
-        ListEmptyComponent={<Text style={s.empty}>No allergies saved yet.</Text>}
-        renderItem={({ item }) => (
-          <View style={s.row}>
+      {allergies.length === 0 ? (
+        <Text style={s.empty}>No allergies saved yet.</Text>
+      ) : (
+        allergies.map((item) => (
+          <View key={String(item.id)} style={s.row}>
             <Text style={s.rowTextFlex}>{item.ingredient} ({item.severity})</Text>
             <TouchableOpacity onPress={() => onDelete(item.id)}>
               <Text style={s.delete}>Delete</Text>
             </TouchableOpacity>
           </View>
-        )} />
-    </View>
+        ))
+      )}
+    </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: COLORS.white },
+  screen: { flex: 1, backgroundColor: COLORS.white },
+  container: { padding: 20, paddingBottom: 32 },
   title: { fontSize: 21, fontWeight: '700', color: COLORS.ink, marginBottom: 8 },
   label: { fontWeight: '600', fontSize: 13, color: COLORS.ink, marginTop: 14, marginBottom: 6 },
   input: {
