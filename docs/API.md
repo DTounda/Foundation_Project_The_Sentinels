@@ -64,6 +64,8 @@ If a valid token is sent, the response also contains the user's allergy alerts. 
 ```
 For `not_found`, `medicine` is `null` and `allergyAlerts` is `[]`.
 
+Every result also has `ingredientsKnown` (true or false) and `ingredientsNote` (text or null). When we have the medicine but not its ingredient list, `ingredientsKnown` is false and `ingredientsNote` explains that we could not check it against the user's allergies. The app must show this note, because an empty `allergyAlerts` list does not mean "no risk" in that case.
+
 
 ### `POST /verify/photo`
 Body: `{ "image": "<base64 JPEG, no data: prefix>" }`. Up to 5 MB. The photo is read and discarded, never stored.
