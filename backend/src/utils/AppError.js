@@ -23,6 +23,10 @@ class AppError extends Error {
     return new AppError(404, 'NOT_FOUND', message);
   }
 
+  static unavailable(message) {
+    return new AppError(503, 'SERVICE_UNAVAILABLE', message);
+  }
+
   static conflict(message) {
     return new AppError(409, 'CONFLICT', message);
   }
