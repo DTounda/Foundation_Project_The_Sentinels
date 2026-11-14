@@ -181,9 +181,11 @@ export default function ProfileScreen({ navigation }) {
     }
   }
 
+  // Clears the session and the local profile cache, then goes straight to
+  // Login (not Home) and resets the stack so Back can't return to Profile.
   async function onLogout() {
     await logout();
-    navigation.navigate(ROUTES.HOME);
+    navigation.reset({ index: 0, routes: [{ name: ROUTES.LOGIN }] });
   }
 
   if (loading) {

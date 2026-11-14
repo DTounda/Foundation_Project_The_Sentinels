@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import { Alert } from 'react-native';
 import { searchMedicines } from '../services/api';
 import DisclaimerBanner from '../components/DisclaimerBanner';
 import { LoadingIndicator, ErrorMessage } from '../components/LoadingAndError';
@@ -63,8 +62,7 @@ export default function SearchScanScreen({ navigation }) {
   }
 
   function handleTakePhoto() {
-    // Photo feature goes here. For now the button shows a short message.
-    Alert.alert('Take a photo', 'This feature is coming soon.');
+    navigation.navigate('PhotoVerify');
   }
 
   function closeScanner() {
