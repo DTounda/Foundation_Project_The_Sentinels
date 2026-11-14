@@ -98,6 +98,13 @@ export default function ResultScreen({ route, navigation }) {
           </View>
         )}
 
+        {/* Unknown ingredients: an empty alert list must not look like "safe". */}
+        {!result.ingredientsKnown && result.ingredientsNote ? (
+          <View style={styles.interactionsCard} testID="ingredients-unknown">
+            <Text style={styles.interactionText}>{result.ingredientsNote}</Text>
+          </View>
+        ) : null}
+
         {/* Same slot as allergy alerts, for clashes with current medicines. */}
         {interactions.length > 0 && (
           <View style={styles.interactionsCard} testID="interaction-alerts">

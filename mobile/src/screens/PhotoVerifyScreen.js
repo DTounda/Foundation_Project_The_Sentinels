@@ -5,6 +5,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import DisclaimerBanner from '../components/DisclaimerBanner';
 import { verifyPhoto, verifyMedicine } from '../services/api';
 import { COLORS } from '../constants/colors';
+import { ROUTES } from '../navigation/routes';
 
 // Two backend calls, never one. verifyPhoto returns up to 5 ranked candidates
 // and is never treated as a verdict by itself; the user has to pick one, then
@@ -17,12 +18,14 @@ export default function PhotoVerifyScreen({ navigation }) {
   const [busyText, setBusyText] = useState('');
   const [error, setError] = useState('');
   const [candidates, setCandidates] = useState(null);
+  const [offerSearch, setOfferSearch] = useState(false);
 
   function reset() {
     setPhotoUri(null);
     setBusy(false);
     setError('');
     setCandidates(null);
+    setOfferSearch(false);
   }
 
   async function takePhoto() {
@@ -39,6 +42,7 @@ export default function PhotoVerifyScreen({ navigation }) {
 
   async function processAndUpload(uri) {
     setBusy(true);
+    setOfferSearch(false);
     setBusyText('Preparing photo...');
     setCandidates(null);
     try {
@@ -59,10 +63,13 @@ export default function PhotoVerifyScreen({ navigation }) {
         setCandidates(found);
       }
     } catch (e) {
-      if (e?.status === 422) {
+      if (e?.status === 503) {
+        // Photo reading is down or out of quota; the backend sends the user-facing message.
+        setError(e.message || 'Photo reading is unavailable right now. Please search by name.');
+        setOfferSearch(true);
+      } else if (e?.status === 422) {
         setError(UNREADABLE_MESSAGE);
-      } else if (e?.status === 413) {
-        setError("The server rejected this photo as too large. This is a backend setup issue, not something retaking the photo will fix — let the team know.");
+        setOfferSearch(true);
       } else {
         setError(e?.message || 'Something went wrong. Please try again.');
       }
@@ -108,6 +115,16 @@ export default function PhotoVerifyScreen({ navigation }) {
           <View style={styles.errorCard}>
             <Text style={styles.errorText}>{error}</Text>
           </View>
+        )}
+
+        {!busy && offerSearch && (
+          <Pressable
+            style={styles.secondaryButton}
+            accessibilityRole="button"
+            onPress={() => navigation.navigate(ROUTES.TABS, { screen: ROUTES.HOME })}
+          >
+            <Text style={styles.secondaryButtonText}>Search by name instead</Text>
+          </Pressable>
         )}
 
         {!busy && candidates && candidates.length > 0 && (
