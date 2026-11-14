@@ -22,6 +22,10 @@ const { createOcrService } = require('../services/ocrService');
 const { createPhotoService } = require('../services/photoService');
 const { createPhotoController } = require('../controllers/photo.controller');
 const { createPhotoRoutes } = require('./photo.routes');
+const { createMeController } = require('../controllers/me.controller');
+const { createMeRoutes } = require('./me.routes');
+const { createMeService } = require('../services/meService');
+const { createMedicationService } = require('../services/medicationService');
 
 /**
  * Builds the /api/v1 router.
@@ -52,6 +56,10 @@ function buildRouter({
     const reportService = createReportService({
       reportRepository: repositories.reportRepository,
       medicineRepository: repositories.medicineRepository,
+    });
+    const meService = createMeService({ userRepository: repositories.userRepository });
+    const medicationService = createMedicationService({
+      userMedicationRepository: repositories.userMedicationRepository,
     });
 
     router.use(
@@ -88,6 +96,12 @@ function buildRouter({
       createReportRoutes({
         reportController: createReportController({ reportService }),
         optionalAuth: auth.optionalAuth,
+      }),
+    );
+    router.use(
+      createMeRoutes({
+        meController: createMeController({ meService, medicationService }),
+        requireAuth: auth.requireAuth,
       }),
     );
   }
