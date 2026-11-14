@@ -1,4 +1,3 @@
-
 const { createIngredientRepository } = require('./ingredientRepository');
 const { createMedicineRepository } = require('./medicineRepository');
 const { createUserAllergyRepository } = require('./userAllergyRepository');
@@ -6,29 +5,17 @@ const { createUserRepository } = require('./userRepository');
 const { createVerificationLogRepository } = require('./verificationLogRepository');
 const { createReportRepository } = require('./reportRepository');
 
-const {
-  createMongoMedicineRepository,
-} = require('./mongo/medicineRepository');
+const { createMongoMedicineRepository } = require('./mongo/medicineRepository');
 
-const {
-  createMongoIngredientRepository,
-} = require('./mongo/ingredientRepository');
+const { createMongoIngredientRepository } = require('./mongo/ingredientRepository');
 
-const {
-  createMongoUserAllergyRepository,
-} = require('./mongo/userAllergyRepository');
+const { createMongoUserAllergyRepository } = require('./mongo/userAllergyRepository');
 
-const {
-  createMongoUserRepository,
-} = require('./mongo/userRepository');
+const { createMongoUserRepository } = require('./mongo/userRepository');
 
-const {
-  createMongoVerificationLogRepository,
-} = require('./mongo/verificationLogRepository');
+const { createMongoVerificationLogRepository } = require('./mongo/verificationLogRepository');
 
-const {
-  createMongoReportRepository,
-} = require('./mongo/reportRepository');
+const { createMongoReportRepository } = require('./mongo/reportRepository');
 
 function createMysqlRepositories(pool) {
   return {

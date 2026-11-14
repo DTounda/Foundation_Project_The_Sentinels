@@ -5,13 +5,7 @@ function createMongoVerificationLogRepository(db) {
 
   return {
     /** Save a verification check, including anonymous checks. */
-    async create({
-      userId = null,
-      medicineId = null,
-      method,
-      result,
-      allergyWarning = false,
-    }) {
+    async create({ userId = null, medicineId = null, method, result, allergyWarning = false }) {
       const id = await nextId(db, 'verificationLogs');
 
       await verificationLogs.insertOne({

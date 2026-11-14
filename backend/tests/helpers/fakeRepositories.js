@@ -1,3 +1,4 @@
+
 /**
  * In-memory repositories with the same methods as the MySQL ones.
  * They let us test the whole API (routes -> controllers -> services) without a database.
@@ -45,7 +46,12 @@ const SAMPLE_INGREDIENTS = [
 ];
 
 /** medicine id -> ingredient ids (mirrors the MedicineIngredients table) */
-const SAMPLE_MEDICINE_INGREDIENTS = { 1: [1], 2: [2], 3: [3], 4: [1, 3] };
+const SAMPLE_MEDICINE_INGREDIENTS = {
+  1: [1],
+  2: [2],
+  3: [3],
+  4: [1, 3],
+};
 
 function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
   const logs = [];
@@ -55,19 +61,26 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
   const medicineRepository = {
     async searchByName(query) {
       const search = query.toLowerCase();
-      return medicines.filter((medicine) => medicine.name.toLowerCase().includes(search));
+
+      return medicines.filter((medicine) =>
+        medicine.name.toLowerCase().includes(search),
+      );
     },
 
     async listForMatching() {
-      return medicines.map(({ id, name, manufacturer }) => ({ id, name, manufacturer }));
+      return medicines.map(({ id, name, manufacturer }) => ({
+        id,
+        name,
+        manufacturer,
+      }));
     },
 
     async findByBarcode(barcode) {
-      return medicines.find((m) => m.barcode === barcode) || null;
+      return medicines.find((medicine) => medicine.barcode === barcode) || null;
     },
 
     async findById(id) {
-      return medicines.find((m) => m.id === id) || null;
+      return medicines.find((medicine) => medicine.id === id) || null;
     },
 
     async getIngredients(medicineId) {
@@ -81,38 +94,86 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
         };
       });
     },
+
+    async getIngredientsForMedicines(medicineIds) {
+      const results = new Map();
+
+      for (const medicineId of medicineIds) {
+        const ingredientIds =
+          SAMPLE_MEDICINE_INGREDIENTS[medicineId] || [];
+
+        const ingredients = ingredientIds.map((id) => {
+          const ingredient = SAMPLE_INGREDIENTS.find((item) => item.id === id);
+
+          return {
+            id: ingredient.id,
+            name: ingredient.name,
+            strength: ingredient.strength,
+          };
+        });
+
+        results.set(Number(medicineId), ingredients);
+      }
+
+      return results;
+    },
   };
 
   const ingredientRepository = {
     async findById(id) {
-      return SAMPLE_INGREDIENTS.find((i) => i.id === id) || null;
+      return SAMPLE_INGREDIENTS.find((ingredient) => ingredient.id === id) || null;
     },
+
     async list(query = '') {
-      const q = query.toLowerCase();
+      const search = query.toLowerCase();
 
       return SAMPLE_INGREDIENTS
-        .filter((i) => i.name.toLowerCase().includes(q))
-        .map((i) => ({ id: i.id, name: i.name }));
+        .filter((ingredient) => ingredient.name.toLowerCase().includes(search))
+        .map(({ id, name }) => ({ id, name }));
     },
   };
 
   const userAllergyRepository = {
     async listByUser(userId) {
-      return allergies.filter((a) => a.userId === userId).map(({ userId: _u, ...rest }) => rest);
+      return allergies
+        .filter((allergy) => allergy.userId === userId)
+        .map(({ userId: _userId, ...rest }) => rest);
     },
+
     async findByUserAndIngredient(userId, ingredientId) {
-      const found = allergies.find((a) => a.userId === userId && a.ingredientId === ingredientId);
-      return found || null;
+      return (
+        allergies.find(
+          (allergy) =>
+            allergy.userId === userId &&
+            allergy.ingredientId === ingredientId,
+        ) || null
+      );
     },
+
     async add(userId, ingredientId, severity) {
-      const ingredient = SAMPLE_INGREDIENTS.find((i) => i.id === ingredientId);
+      const ingredient = SAMPLE_INGREDIENTS.find(
+        (item) => item.id === ingredientId,
+      );
       const id = allergies.length + 1;
-      allergies.push({ id, userId, ingredientId, ingredient: ingredient.name, severity });
+
+      allergies.push({
+        id,
+        userId,
+        ingredientId,
+        ingredient: ingredient.name,
+        severity,
+      });
+
       return id;
     },
+
     async remove(userId, allergyId) {
-      const index = allergies.findIndex((a) => a.id === allergyId && a.userId === userId);
+      const index = allergies.findIndex(
+        (allergy) => allergy.id === allergyId && allergy.userId === userId,
+      );
+
       if (index === -1) return false;
+
       allergies.splice(index, 1);
       return true;
     },
@@ -126,7 +187,12 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
   };
 
   const reportRepository = {
-    async create({ userId = null, medicineId = null, description, location = null }) {
+    async create({
+      userId = null,
+      medicineId = null,
+      description,
+      location = null,
+    }) {
       const report = {
         id: reports.length + 1,
         userId,
@@ -146,17 +212,33 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
   };
 
   const users = [];
+
   const userRepository = {
     async findByEmail(email) {
-      return users.find((u) => u.email === email) || null;
+      return users.find((user) => user.email === email) || null;
     },
+
     async findById(id) {
-      return users.find((u) => u.id === id) || null;
+      return users.find((user) => user.id === id) || null;
     },
+
     async create({ fullName, email, passwordHash }) {
-      const user = { id: users.length + 1, fullName, email, passwordHash, role: 'user' };
+      const user = {
+        id: users.length + 1,
+        fullName,
+        email,
+        passwordHash,
+        role: 'user',
+      };
+
       users.push(user);
-      return { id: user.id, fullName, email, role: 'user' };
+
+      return {
+        id: user.id,
+        fullName,
+        email,
+        role: 'user',
+      };
     },
   };
 

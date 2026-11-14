@@ -1,17 +1,19 @@
-
 const AppError = require('../utils/AppError');
 const { allergyMessage } = require('../messages/resultMessages');
 
 const SEVERITY_ORDER = { severe: 0, moderate: 1, mild: 2 };
-
+/**
+ * Core allergy algorithm: match medicine ingredients against a user's allergies by ingredient ID.
+ * Uses a Map for efficient lookup and orders alerts by severity.
+ */
 function findAllergyMatches(medicineIngredients, userAllergies) {
   const allergyByIngredient = new Map(
-    userAllergies.map(allergy => [Number(allergy.ingredientId), allergy]),
+    userAllergies.map((allergy) => [Number(allergy.ingredientId), allergy]),
   );
 
   return medicineIngredients
-    .filter(ingredient => allergyByIngredient.has(Number(ingredient.id)))
-    .map(ingredient => {
+    .filter((ingredient) => allergyByIngredient.has(Number(ingredient.id)))
+    .map((ingredient) => {
       const allergy = allergyByIngredient.get(Number(ingredient.id));
 
       return {
@@ -21,16 +23,10 @@ function findAllergyMatches(medicineIngredients, userAllergies) {
         message: allergyMessage(ingredient.name),
       };
     })
-    .sort(
-      (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity],
-    );
+    .sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
 }
 
-function createAllergyService({
-  medicineRepository,
-  ingredientRepository,
-  userAllergyRepository,
-}) {
+function createAllergyService({ medicineRepository, ingredientRepository, userAllergyRepository }) {
   return {
     async getAlertsForMedicine(userId, medicineId) {
       if (!userId || !medicineId) return [];
@@ -54,9 +50,7 @@ function createAllergyService({
 
       const allergies = await userAllergyRepository.listByUser(userId);
 
-      const results = new Map(
-        medicineIds.map(id => [Number(id), []]),
-      );
+      const results = new Map(medicineIds.map((id) => [Number(id), []]));
 
       if (allergies.length === 0) return results;
 
@@ -66,10 +60,7 @@ function createAllergyService({
       for (const medicineId of medicineIds) {
         const ingredients = ingredientsByMedicine.get(Number(medicineId)) || [];
 
-        results.set(
-          Number(medicineId),
-          findAllergyMatches(ingredients, allergies),
-        );
+        results.set(Number(medicineId), findAllergyMatches(ingredients, allergies));
       }
 
       return results;
@@ -103,9 +94,7 @@ function createAllergyService({
       if (!ingredient) throw AppError.notFound('Ingredient not found');
 
       if (await userAllergyRepository.findByUserAndIngredient(userId, ingredientId)) {
-        throw AppError.conflict(
-          `${ingredient.name} is already in your allergy list`,
-        );
+        throw AppError.conflict(`${ingredient.name} is already in your allergy list`);
       }
 
       const id = await userAllergyRepository.add(userId, ingredientId, severity);

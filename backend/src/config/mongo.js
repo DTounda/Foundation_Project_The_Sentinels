@@ -1,4 +1,3 @@
-
 const { MongoClient } = require('mongodb');
 const config = require('./env');
 const dns = require('dns');

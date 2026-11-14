@@ -1,4 +1,3 @@
-
 function mapMedicine(document) {
   if (!document) return null;
 
@@ -23,10 +22,9 @@ function createMongoMedicineRepository(db) {
     },
 
     async searchByName(query) {
-      const escapedQuery = String(query || '').trim().replace(
-        /[.*+?^${}()|[\]\\]/g,
-        '\\$&',
-      );
+      const escapedQuery = String(query || '')
+        .trim()
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
       if (!escapedQuery) return [];
 
@@ -34,10 +32,7 @@ function createMongoMedicineRepository(db) {
 
       const documents = await medicines
         .find({
-          $or: [
-            { brandName: searchPattern },
-            { genericName: searchPattern },
-          ],
+          $or: [{ brandName: searchPattern }, { genericName: searchPattern }],
         })
         .sort({ brandName: 1 })
         .limit(20)
@@ -64,7 +59,7 @@ function createMongoMedicineRepository(db) {
         return [];
       }
 
-      return document.ingredients.map(ingredient => ({
+      return document.ingredients.map((ingredient) => ({
         id: ingredient.ingredientId,
         name: ingredient.name,
         strength: ingredient.strength ?? null,
@@ -76,27 +71,20 @@ function createMongoMedicineRepository(db) {
      * Returns a Map: medicineId -> ingredients array.
      */
     async getIngredientsForMedicines(medicineIds) {
-      const ids = [...new Set(
-        (medicineIds || [])
-          .map(Number)
-          .filter(Number.isFinite),
-      )];
+      const ids = [...new Set((medicineIds || []).map(Number).filter(Number.isFinite))];
 
       if (ids.length === 0) return new Map();
 
       const documents = await medicines
-        .find(
-          { medicineId: { $in: ids } },
-          { projection: { medicineId: 1, ingredients: 1 } },
-        )
+        .find({ medicineId: { $in: ids } }, { projection: { medicineId: 1, ingredients: 1 } })
         .toArray();
 
-      const result = new Map(ids.map(id => [id, []]));
+      const result = new Map(ids.map((id) => [id, []]));
 
       for (const document of documents) {
         result.set(
           document.medicineId,
-          (document.ingredients || []).map(ingredient => ({
+          (document.ingredients || []).map((ingredient) => ({
             id: ingredient.ingredientId,
             name: ingredient.name,
             strength: ingredient.strength ?? null,
@@ -123,7 +111,7 @@ function createMongoMedicineRepository(db) {
         .sort({ brandName: 1 })
         .toArray();
 
-      return documents.map(document => ({
+      return documents.map((document) => ({
         id: document.medicineId,
         name: document.brandName || document.genericName,
         genericName: document.genericName,
