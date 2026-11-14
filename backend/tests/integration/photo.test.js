@@ -39,6 +39,19 @@ describe('POST /api/v1/verify/photo', () => {
     expect(res.body.error.code).toBe('UNREADABLE');
   });
 
+  it('returns 503 with a clear message when the OCR service fails', async () => {
+    const ocrService = { readText: jest.fn().mockRejectedValue(new Error('quota exceeded')) };
+    const app = createApp({ repositories: createFakeRepositories(), ocrService });
+    const logger = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const res = await request(app).post('/api/v1/verify/photo').send({ image: IMAGE });
+
+    expect(res.status).toBe(503);
+    expect(res.body.error.code).toBe('SERVICE_UNAVAILABLE');
+    expect(res.body.error.message).toMatch(/search by name/);
+    logger.mockRestore();
+  });
+
   it('returns 400 and never calls OCR when the image is missing', async () => {
     const { app, ocrService } = setup('Paracetamol');
     const res = await request(app).post('/api/v1/verify/photo').send({});
