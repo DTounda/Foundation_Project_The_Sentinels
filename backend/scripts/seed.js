@@ -1,6 +1,5 @@
-
+﻿
 require('dotenv').config();
-
 const fs = require('fs');
 const path = require('path');
 const xlsx = require('xlsx');
@@ -42,6 +41,7 @@ const UNCERTAIN_WORDS = [
 ];
 
 const DOSAGE_FORM_ENDING =
+  /\b(?:for\s+)?(?:pressurised|pressurized)?\s*(?:tablets?|capsules?|injections?|inhalations?|suspensions?|syrups?|solutions?|emulsions?|creams?|ointments?|drops?|gels?|powders?|infusions?|suppositories|sprays?|patches?)\s*$/i;
   /\b(?:pressurised|pressurized)?\s*(?:tablets?|capsules?|injections?|inhalations?|suspensions?|syrups?|solutions?|emulsions?|creams?|ointments?|drops?|gels?|powders?|infusions?|suppositories|sprays?|patches?)\s*$/i;
 
 const STANDARD_WORDS = /\b(?:usp|bp|ph\.?\s*eur|usp-nf)\b/gi;
@@ -56,15 +56,12 @@ const STRENGTH_PATTERN = new RegExp(
 
 function isMissing(value) {
   if (value === null || value === undefined) return true;
-
   const text = String(value).trim().toLowerCase();
-
   return ['', '-', 'â€”', 'â€“', 'n/a', 'na'].includes(text);
 }
 
 function normalizeText(value) {
   if (isMissing(value)) return '';
-
   return String(value)
     .replace(/\u00a0/g, ' ')
     .replace(/\s+/g, ' ')
@@ -90,7 +87,6 @@ async function nextId(db, name) {
 function extractStrengths(value) {
   const text = normalizeText(value);
   const matches = text.match(STRENGTH_PATTERN);
-
   return matches ? matches.map(item => item.trim()) : [];
 }
 
@@ -98,7 +94,7 @@ function removeStrength(value) {
   return normalizeText(value)
     .replace(
       new RegExp(
-        String.raw`\b\d+(?:[.,]\d+)?\s*\/\s*\d+(?:[.,]\d+)?\s*${STRENGTH_UNIT}?\b`,
+        String.raw`\b\d+(?:[.,]\d+)?\s*\\/\s*\d+(?:[.,]\d+)?\s*${STRENGTH_UNIT}?\b`,
         'gi',
       ),
       ' ',
@@ -158,7 +154,6 @@ function splitParts(value) {
     const right = source.slice(i + separatorLength).trim();
 
     if (!left || !right) continue;
-
     if (character === ',' && /^\d/.test(right)) continue;
 
     parts.push(left);
@@ -228,9 +223,44 @@ function removeRepeatedSaltPhrase(value) {
   return { value: text, uncertain: true };
 }
 
+// Ingredient cleanup additions.
+const INGREDIENT_DESCRIPTORS =
+  /\b(?:b\s*p|bp|usp|usp-nf|ph\.?\s*eur|per|caplets?|effervescent|intravenous|sustained\s+release)\b|\/\s*ml\b/gi;
+
+function removeIngredientDescriptors(value) {
+  return normalizeText(value)
+    .replace(INGREDIENT_DESCRIPTORS, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Only split this known combined ingredient.
+// Do not split arbitrary multi-word ingredient names.
+function splitKnownJoinedIngredient(value) {
+  const key = normalizeText(value).toLowerCase().replace(/\s+/g, ' ');
+
+  if (key === 'paracetamol pseudoephedrine hcl dextromethorphan hbr') {
+    return [
+      'Paracetamol',
+      'Pseudoephedrine Hcl',
+      'Dextromethorphan Hbr',
+    ];
+  }
+
+  return [value];
+}
+
 function cleanIngredientName(originalName) {
-  const original = normalizeText(originalName);
-  const withoutStrength = removeStrength(original);
+  let original = normalizeText(originalName);
+
+  // Correct a known FDA spelling variation.
+  original = original.replace(/\bdextrometorphan\b/gi, 'Dextromethorphan');
+
+  // Acetaminophen is another name for Paracetamol.
+  if (/^acetaminophen\s*\(paracetamol\)$/i.test(original)) {
+    original = 'Paracetamol';
+  }
+  const withoutStrength = removeIngredientDescriptors(removeStrength(original));
 
   let candidate = withoutStrength.replace(STANDARD_WORDS, ' ').trim();
 
@@ -238,6 +268,7 @@ function cleanIngredientName(originalName) {
     .replace(/\bpressurised\b/gi, ' ')
     .replace(/\bpressurized\b/gi, ' ')
     .replace(/\banhydrous\b/gi, ' ')
+    .replace(/\(\s*\)/g, ' ')
     .replace(/\bfor\s+(?:oral\s+)?injection\b/gi, ' ')
     .replace(/\bfor\s+inhalation\b/gi, ' ')
     .replace(DOSAGE_FORM_ENDING, ' ')
@@ -349,17 +380,19 @@ function parseIngredients(medicine, review) {
   }
 
   const genericText = normalizeText(genericName)
+    .replace(/^\s*\d+(?:[.,]\d+)?\s*ml\s+/i, '')
+    .replace(/^each\s+\d+(?:[.,]\d+)?\s*ml\s+contain(?:s)?\s+/i, '')
+    .replace(/^(?:syrup|solution|suspension)\s+contains\s+/i, '')
     .replace(DOSAGE_FORM_ENDING, '')
     .trim();
 
-  // Extract strengths before removing them from ingredient names.
   const genericStrengths = extractStrengths(genericText);
   const externalStrengths = extractStrengths(medicine.strength);
 
-  // Remove strengths first so strength ratios do not become ingredients.
-  let ingredientText = genericText.replace(STRENGTH_PATTERN, ' ');
+  let ingredientText = removeIngredientDescriptors(
+    genericText.replace(STRENGTH_PATTERN, ' '),
+  );
 
-  // After removing strengths, remove leftover ratio separators.
   if (genericStrengths.length > 1) {
     ingredientText = ingredientText.replace(/[/]+/g, ' ');
   }
@@ -368,7 +401,8 @@ function parseIngredients(medicine, review) {
     .replace(/\s+/g, ' ')
     .trim();
 
-  const originalParts = splitParts(ingredientText);
+  const originalParts = splitParts(ingredientText)
+    .flatMap(splitKnownJoinedIngredient);
 
   if (originalParts.length === 0) {
     addReview(review, medicine, {
@@ -420,7 +454,6 @@ function parseIngredients(medicine, review) {
 
     if (!cleaned.name || !cleaned.nameKey) {
       unsafe = true;
-
       addReview(review, medicine, {
         originalIngredient: originalPart,
         reason: 'Could not safely clean ingredient.',
@@ -439,7 +472,6 @@ function parseIngredients(medicine, review) {
 
     if (cleaned.uncertain || cleaned.preservationRequired) {
       unsafe = true;
-
       addReview(review, medicine, {
         originalIngredient: originalPart,
         reason: 'Uncertain ingredient wording. Original retained; no ingredients imported.',
@@ -464,8 +496,6 @@ function parseIngredients(medicine, review) {
 
   return candidates;
 }
-
-// ---------- FDA REGISTRATION DATE VALIDATION ----------
 
 function createValidatedDate(year, month, day) {
   const date = new Date(Date.UTC(year, month - 1, day));
@@ -494,7 +524,6 @@ function parseFdaDate(value) {
     );
   }
 
-  // Excel stores many dates as serial numbers.
   if (typeof value === 'number' && Number.isFinite(value)) {
     const parsed = xlsx.SSF.parse_date_code(value);
 
@@ -506,14 +535,13 @@ function parseFdaDate(value) {
   }
 
   const text = String(value).trim();
-
   if (!text) return null;
 
-  // ISO: YYYY-MM-DD
   let match = text.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
 
   if (match) {
     const [, year, month, day] = match;
+
     return createValidatedDate(
       Number(year),
       Number(month),
@@ -521,11 +549,11 @@ function parseFdaDate(value) {
     );
   }
 
-  // Day-first: DD/MM/YYYY or DD-MM-YYYY
   match = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
 
   if (match) {
     const [, day, month, year] = match;
+
     return createValidatedDate(
       Number(year),
       Number(month),
@@ -533,7 +561,6 @@ function parseFdaDate(value) {
     );
   }
 
-  // Text dates: 15-Jan-2026 or 15 January 2026
   const monthNames = {
     jan: 0, january: 0,
     feb: 1, february: 1,
@@ -610,8 +637,6 @@ function determineVerifiedStatus(medicine, review) {
   return 'verified';
 }
 
-// ---------- FDA FILE ----------
-
 function readFdaFile() {
   if (!FDA_FILE) {
     throw new Error(
@@ -666,6 +691,7 @@ function buildDryRun(rows) {
       addReview(review, medicine, {
         reason: 'Required medicine identity field missing. Medicine excluded from import.',
       });
+
       continue;
     }
 
@@ -676,6 +702,7 @@ function buildDryRun(rows) {
       addReview(review, medicine, {
         reason: 'Manufacturer missing. Medicine excluded from import.',
       });
+
       continue;
     }
 
@@ -762,7 +789,7 @@ function writeUnknownIngredientsFile(medicines) {
 function printSelectedMedicineCheck(medicines) {
   console.log('\n===== SELECTED MEDICINE CHECK =====');
 
-  for (const id of ['3', '10', '24', '25', '28']) {
+  for (const id of ['3', '10', '24', '25', '28', '541']) {
     const medicine = medicines.find(
       item => item.fdaSerialNumber === id,
     );
@@ -774,6 +801,7 @@ function printSelectedMedicineCheck(medicines) {
 
     console.log(`\nFDA ${id}: ${medicine.brandName}`);
     console.log('Generic name:', medicine.genericName);
+
     console.log(
       'Ingredients:',
       medicine.ingredients.map(ingredient => ({
@@ -781,6 +809,7 @@ function printSelectedMedicineCheck(medicines) {
         strength: ingredient.strength,
       })),
     );
+
     console.log('Ingredients known:', medicine.ingredientsKnown);
     console.log('Verified status:', medicine.verifiedStatus);
   }
@@ -846,9 +875,11 @@ async function run() {
   console.log('\n===== FDA DRY RUN SUMMARY =====');
   console.log(`FDA records inspected: ${rows.length}`);
   console.log(`Medicines ready for import: ${result.medicines.length}`);
+
   console.log(
     `Medicines with extracted ingredients: ${result.medicines.length - emptyIngredientLists}`,
   );
+
   console.log(`Medicines with empty ingredient lists: ${emptyIngredientLists}`);
   console.log(`Medicines with unknown ingredients: ${unknownIngredientCount}`);
   console.log(`Verified registrations: ${verifiedCount}`);
@@ -937,8 +968,14 @@ async function run() {
   }
 }
 
-run().catch(error => {
-  console.error('\nFDA seed failed:', error.message);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  run().catch(error => {
+    console.error('\nFDA seed failed:', error.message);
+    process.exitCode = 1;
+  });
+}
 
+module.exports = {
+  parseIngredients,
+  cleanIngredientName,
+};
