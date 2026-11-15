@@ -9,6 +9,18 @@ const IGNORED_WORDS = new Set([
   'suspension',
   'injection',
   'cream',
+  // Dosage units, split off by normalize()'s digit/letter split (e.g. "500mg"
+  // -> "500 mg"). These are never what tells two brands apart, unlike a real
+  // single-letter suffix such as the C in NAT-C, so they stay ignored
+  // regardless of length.
+  'mg',
+  'ml',
+  'mcg',
+  'iu',
+  'kg',
+  'cc',
+  'g',
+  'l',
 ]);
 
 /** "PANADOL 500mg!" -> "panadol 500 mg" */
@@ -22,11 +34,16 @@ function normalize(text) {
     .trim();
 }
 
-/** The words of a medicine name that identify it: no numbers, no "tablets". */
+/**
+ * The words of a medicine name that identify it: no numbers, no "tablets".
+ * A single letter is kept, not dropped — many brands differ only by a
+ * trailing letter (NAT-C vs NAT-D, IBUKANT 200 F), and dropping it made two
+ * different medicines collapse to the same name and both score 100%.
+ */
 function nameWords(name) {
   return normalize(name)
     .split(' ')
-    .filter((w) => w.length >= 3 && !/^\d+$/.test(w) && !IGNORED_WORDS.has(w));
+    .filter((w) => w.length > 0 && !/^\d+$/.test(w) && !IGNORED_WORDS.has(w));
 }
 
 /** Every word read from the photo, plus each pair joined ("amoxi cillin" -> "amoxicillin"). */
@@ -34,7 +51,10 @@ function ocrTokens(text) {
   const list = normalize(text).split(' ').filter(Boolean);
   const tokens = new Set(list);
   for (let i = 0; i < list.length - 1; i += 1) tokens.add(list[i] + list[i + 1]);
-  return [...tokens].filter((t) => t.length >= 3);
+  // Keep single letters too (see nameWords): a brand's distinguishing suffix
+  // letter, like the F in "IBUKANT 200 F", is exactly as real a token as any
+  // other word on the box.
+  return [...tokens].filter((t) => t.length > 0);
 }
 
 /** "panadol" -> { pa, an, na, ad, do, ol } */
