@@ -14,5 +14,7 @@ export function normalizeResult(apiResult) {
     medicineId: apiResult.medicine?.id ?? null,
     medicineName: apiResult.medicine?.name ?? null,
     allergyAlerts: Array.isArray(apiResult.allergyAlerts) ? apiResult.allergyAlerts : [],
+    ingredientsKnown: apiResult.ingredientsKnown !== false,
+    ingredientsNote: apiResult.ingredientsNote ?? null,
   };
 }

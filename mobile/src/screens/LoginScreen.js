@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import { ScrollView, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { login } from '../services/api';
 import { ROUTES } from '../navigation/routes';
 import { COLORS } from '../constants/colors';
@@ -31,7 +31,12 @@ export default function LoginScreen({ navigation, route }) {
   }
 
   return (
-    <View style={styles.container}>
+    // Scrolls so the keyboard never hides the fields or the button on small phones.
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.title}>Log in</Text>
 
       {!!error && <Text style={styles.error}>{error}</Text>}
@@ -68,12 +73,13 @@ export default function LoginScreen({ navigation, route }) {
       >
         <Text style={styles.link}>New here? Create an account</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: COLORS.white },
+  screen: { flex: 1, backgroundColor: COLORS.white },
+  container: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   title: { fontSize: 23, fontWeight: '700', color: COLORS.ink, marginBottom: 20 },
   input: {
     borderWidth: 1,

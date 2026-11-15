@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, Image, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ScrollView, Text, Image, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import DisclaimerBanner from '../components/DisclaimerBanner';
 import { verifyPhoto, verifyMedicine } from '../services/api';
 import { COLORS } from '../constants/colors';
+import { ROUTES } from '../navigation/routes';
 
 // Two backend calls, never one. verifyPhoto returns up to 5 ranked candidates
 // and is never treated as a verdict by itself; the user has to pick one, then
@@ -17,12 +18,14 @@ export default function PhotoVerifyScreen({ navigation }) {
   const [busyText, setBusyText] = useState('');
   const [error, setError] = useState('');
   const [candidates, setCandidates] = useState(null);
+  const [offerSearch, setOfferSearch] = useState(false);
 
   function reset() {
     setPhotoUri(null);
     setBusy(false);
     setError('');
     setCandidates(null);
+    setOfferSearch(false);
   }
 
   async function takePhoto() {
@@ -39,6 +42,7 @@ export default function PhotoVerifyScreen({ navigation }) {
 
   async function processAndUpload(uri) {
     setBusy(true);
+    setOfferSearch(false);
     setBusyText('Preparing photo...');
     setCandidates(null);
     try {
@@ -59,10 +63,13 @@ export default function PhotoVerifyScreen({ navigation }) {
         setCandidates(found);
       }
     } catch (e) {
-      if (e?.status === 422) {
+      if (e?.status === 503) {
+        // Photo reading is down or out of quota; the backend sends the user-facing message.
+        setError(e.message || 'Photo reading is unavailable right now. Please search by name.');
+        setOfferSearch(true);
+      } else if (e?.status === 422) {
         setError(UNREADABLE_MESSAGE);
-      } else if (e?.status === 413) {
-        setError("The server rejected this photo as too large. This is a backend setup issue, not something retaking the photo will fix — let the team know.");
+        setOfferSearch(true);
       } else {
         setError(e?.message || 'Something went wrong. Please try again.');
       }
@@ -88,7 +95,7 @@ export default function PhotoVerifyScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={styles.preview} resizeMode="cover" />
         ) : (
@@ -110,10 +117,22 @@ export default function PhotoVerifyScreen({ navigation }) {
           </View>
         )}
 
+        {!busy && offerSearch && (
+          <Pressable
+            style={styles.secondaryButton}
+            accessibilityRole="button"
+            onPress={() => navigation.navigate(ROUTES.TABS, { screen: ROUTES.HOME })}
+          >
+            <Text style={styles.secondaryButtonText}>Search by name instead</Text>
+          </Pressable>
+        )}
+
         {!busy && candidates && candidates.length > 0 && (
           <View style={styles.candidatesCard}>
             <Text style={styles.candidatesTitle}>Which one is it?</Text>
-            <Text style={styles.candidatesHint}>Pick the closest match. We never guess for you.</Text>
+            <Text style={styles.candidatesHint}>
+              Only pick one if its name matches your pack exactly. A close name can be a different medicine.
+            </Text>
             {candidates.map((c) => (
               <Pressable
                 key={c.medicineId}
@@ -128,6 +147,14 @@ export default function PhotoVerifyScreen({ navigation }) {
                 <Text style={styles.candidateConfidence}>{Math.round((c.confidence ?? 0) * 100)}%</Text>
               </Pressable>
             ))}
+            {/* A wrong pick would show another product's result, so always offer a way out. */}
+            <Pressable
+              style={styles.noneRow}
+              accessibilityRole="button"
+              onPress={() => navigation.navigate(ROUTES.TABS, { screen: ROUTES.HOME })}
+            >
+              <Text style={styles.noneText}>None of these match my pack. Search by name instead</Text>
+            </Pressable>
           </View>
         )}
 
@@ -147,7 +174,7 @@ export default function PhotoVerifyScreen({ navigation }) {
           Your photo is sent to a cloud text-reading service to identify the medicine, and is not stored
           afterwards.
         </Text>
-      </View>
+      </ScrollView>
       <DisclaimerBanner />
     </View>
   );
@@ -155,7 +182,7 @@ export default function PhotoVerifyScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
-  content: { flex: 1, padding: 16, gap: 12 },
+  content: { padding: 16, paddingBottom: 28, gap: 12 },
   placeholder: {
     height: 220,
     borderRadius: 14,
@@ -205,6 +232,8 @@ const styles = StyleSheet.create({
   candidateInfo: { flex: 1, paddingRight: 10 },
   candidateName: { fontSize: 14, fontWeight: '600', color: COLORS.ink },
   candidateMeta: { fontSize: 12, color: COLORS.slate, marginTop: 2 },
+  noneRow: { paddingVertical: 12, borderTopWidth: 1, borderColor: COLORS.border },
+  noneText: { fontSize: 14, fontWeight: '600', color: COLORS.primaryDark },
   candidateConfidence: { fontSize: 13, fontWeight: '700', color: COLORS.primaryDark },
   button: {
     backgroundColor: COLORS.primary,
