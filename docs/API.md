@@ -118,3 +118,62 @@ Body: `{ "medicineId": 1, "description": "Packaging looks different", "location"
 - `location` is optional, up to 150 characters.
 
 400 `VALIDATION_ERROR` if `description` is missing or out of range, or if `medicineId` is sent but is not a positive integer. 404 if `medicineId` is sent but unknown.
+
+## User profile and medications
+
+All routes in this section require a bearer token. Each user can access only their own profile and medications.
+
+### `GET /me`
+200:
+```json
+{
+  "user": {
+    "id": 1,
+    "fullName": "Aline Uwase",
+    "firstName": "Aline",
+    "lastName": "Uwase",
+    "email": "aline@example.com",
+    "phone": "+250788000000"
+  },
+  "doctor": { "name": "Dr. Mutesi", "phone": "+250788000001", "email": "doctor@example.com" },
+  "pharmacy": { "name": "Kigali Pharmacy", "phone": "+250788000002" }
+}
+```
+`doctor` and `pharmacy` are `null` until configured. `firstName` is the first word of `fullName`; `lastName` is the remaining text, or an empty string when there is no remaining text.
+
+### `PUT /me/account`
+Body: `{ "fullName": "Aline Uwase", "email": "aline@example.com", "phone": "+250788000000" }`
+200: returns the same `{ "user": ..., "doctor": ..., "pharmacy": ... }` shape as `GET /me`.
+All three fields are required. `409 CONFLICT` if the email belongs to another account.
+
+### `PUT /me/doctor`
+Body: `{ "name": "Dr. Mutesi", "phone": "+250788000001", "email": "doctor@example.com" }`
+200: `{ "doctor": { "name": "Dr. Mutesi", "phone": "+250788000001", "email": "doctor@example.com" } }`
+`name` and `phone` are required. `email` is optional and may be omitted or set to `null`.
+
+### `PUT /me/pharmacy`
+Body: `{ "name": "Kigali Pharmacy", "phone": "+250788000002" }`
+200: `{ "pharmacy": { "name": "Kigali Pharmacy", "phone": "+250788000002" } }`
+Both fields are required.
+
+### `GET /me/medications`
+200: `{ "medications": [ { "id": 1, "name": "Warfarin" } ] }`
+
+### `POST /me/medications`
+Body: `{ "name": "Warfarin" }`
+201: `{ "id": 1, "name": "Warfarin" }`
+`name` is required. Medication names are user-entered and may be duplicated.
+
+### `GET /me/medications/:id`
+200: `{ "id": 1, "name": "Warfarin" }`
+404 if the medication does not exist or is not yours.
+
+### `PUT /me/medications/:id`
+Body: `{ "name": "Warfarin" }`
+200: `{ "id": 1, "name": "Warfarin" }`
+`name` is required. 404 if the medication does not exist or is not yours.
+
+### `DELETE /me/medications/:id`
+204. 404 if the medication does not exist or is not yours.
+
+Invalid bodies and IDs return `400 VALIDATION_ERROR`. All errors use the standard error shape defined above.

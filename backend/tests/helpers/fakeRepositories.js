@@ -212,6 +212,7 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
   };
 
   const users = [];
+  const medications = [];
 
   const userRepository = {
     async findByEmail(email) {
@@ -222,12 +223,41 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
       return users.find((user) => user.id === id) || null;
     },
 
+    async updateAccount(userId, { fullName, email, phone }) {
+      const user = users.find((item) => item.id === userId);
+      if (!user) return null;
+      if (users.some((item) => item.id !== userId && item.email === email)) {
+        const error = new Error('duplicate email');
+        error.code = 'ER_DUP_ENTRY';
+        throw error;
+      }
+      Object.assign(user, { fullName, email, phone });
+      return { ...user };
+    },
+
+    async updateDoctor(userId, doctor) {
+      const user = users.find((item) => item.id === userId);
+      if (!user) return null;
+      user.doctor = doctor;
+      return { ...user };
+    },
+
+    async updatePharmacy(userId, pharmacy) {
+      const user = users.find((item) => item.id === userId);
+      if (!user) return null;
+      user.pharmacy = pharmacy;
+      return { ...user };
+    },
+
     async create({ fullName, email, passwordHash }) {
       const user = {
         id: users.length + 1,
         fullName,
         email,
         passwordHash,
+        phone: null,
+        doctor: null,
+        pharmacy: null,
         role: 'user',
       };
 
@@ -242,6 +272,45 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
     },
   };
 
+  const userMedicationRepository = {
+    async listByUser(userId) {
+      return medications
+        .filter((medication) => medication.userId === userId)
+        .map(({ medicationId: id, name }) => ({ id, name }));
+    },
+
+    async findByUser(userId, medicationId) {
+      const medication = medications.find(
+        (item) => item.userId === userId && item.medicationId === medicationId,
+      );
+      return medication ? { id: medication.medicationId, name: medication.name } : null;
+    },
+
+    async create(userId, name) {
+      const medication = { medicationId: medications.length + 1, userId, name };
+      medications.push(medication);
+      return { id: medication.medicationId, name };
+    },
+
+    async update(userId, medicationId, name) {
+      const medication = medications.find(
+        (item) => item.userId === userId && item.medicationId === medicationId,
+      );
+      if (!medication) return null;
+      medication.name = name;
+      return { id: medication.medicationId, name };
+    },
+
+    async remove(userId, medicationId) {
+      const index = medications.findIndex(
+        (item) => item.userId === userId && item.medicationId === medicationId,
+      );
+      if (index === -1) return false;
+      medications.splice(index, 1);
+      return true;
+    },
+  };
+
   return {
     medicineRepository,
     verificationLogRepository,
@@ -249,6 +318,7 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
     userRepository,
     ingredientRepository,
     userAllergyRepository,
+    userMedicationRepository,
     _logs: logs,
     _users: users,
     _reports: reports,
