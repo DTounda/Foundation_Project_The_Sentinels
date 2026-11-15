@@ -27,7 +27,7 @@ export default function LoginScreen({ navigation, route }) {
       await login(email.trim(), password);
       navigation.replace(ROUTES.TABS, { screen: redirectTo });
     } catch (e) {
-      setRetryable(true);
+      setRetryable(!e?.status || e.status >= 500);
       setError(e?.message || 'Could not log you in.');
     } finally {
       setBusy(false);
