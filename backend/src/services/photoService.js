@@ -5,8 +5,39 @@ const OCR_UNAVAILABLE = 'Photo reading is unavailable right now. Please search b
 
 const UNREADABLE = 'We could not read the medicine name. Please take the photo again.';
 
+// How long the medicine list is cached in memory before a fresh load is
+// tried. This list barely changes between imports, but every photo check
+// used to re-fetch all ~2,500 medicines from Atlas, which is most of why
+// the photo flow felt slow.
+const DEFAULT_CACHE_MS = 60 * 60 * 1000; // 1 hour
+
 /** Photo of a box -> text -> ranked candidates. The photo is never stored. */
-function createPhotoService({ ocrService, medicineRepository, logger = console }) {
+function createPhotoService({
+  ocrService,
+  medicineRepository,
+  logger = console,
+  cacheMs = DEFAULT_CACHE_MS,
+}) {
+  let cache = { medicines: null, loadedAt: 0 };
+
+  async function getMedicinesForMatching() {
+    const isStale = !cache.medicines || Date.now() - cache.loadedAt > cacheMs;
+    if (!isStale) return cache.medicines;
+
+    try {
+      const fresh = await medicineRepository.listForMatching();
+      cache = { medicines: fresh, loadedAt: Date.now() };
+    } catch (err) {
+      // If we have nothing cached yet, there's nothing to fall back to.
+      if (!cache.medicines) throw err;
+      // Otherwise a blip in the DB shouldn't break photo checks that were
+      // working fine a minute ago — keep serving the stale list.
+      logger.error('Could not refresh medicine cache, serving stale list:', err.message);
+    }
+
+    return cache.medicines;
+  }
+
   return {
     async verifyPhoto(image) {
       let text;
@@ -19,7 +50,7 @@ function createPhotoService({ ocrService, medicineRepository, logger = console }
       }
       if (!text) throw AppError.unreadable(UNREADABLE);
 
-      const medicines = await medicineRepository.listForMatching();
+      const medicines = await getMedicinesForMatching();
       const candidates = findCandidates(text, medicines);
       if (candidates.length === 0) throw AppError.unreadable(UNREADABLE);
 
