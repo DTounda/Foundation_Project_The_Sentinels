@@ -6,11 +6,11 @@ Every medicine result carries `status` and a `disclaimer`. MediCheck **gives inf
 
 ## Result statuses
 
-| `status` | Meaning | Shown to the user |
-| --- | --- | --- |
-| `verified` | Barcode matches a registered record with `verified_status = 'verified'` | Verified |
-| `unconfirmed` | Record exists but is `unverified` or `flagged` | We could not confirm this product is authentic. Please check with your pharmacist and report it. |
-| `not_found` | No record for this barcode | Not found in our records. Ask your pharmacist. |
+| `status`      | Meaning                                                                 | Shown to the user                                                                                |
+| ------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `verified`    | Barcode matches a registered record with `verified_status = 'verified'` | Verified                                                                                         |
+| `unconfirmed` | Record exists but is `unverified` or `flagged`                          | We could not confirm this product is authentic. Please check with your pharmacist and report it. |
+| `not_found`   | No record for this barcode                                              | Not found in our records. Ask your pharmacist.                                                   |
 
 ## Errors
 
@@ -27,11 +27,13 @@ Codes: `VALIDATION_ERROR` (400), `UNAUTHORIZED` (401), `NOT_FOUND` (404), `CONFL
 Send `Authorization: Bearer <token>` on protected routes.
 
 ### `POST /auth/register`
+
 Body: `{ "fullName": "Aline Uwase", "email": "aline@example.com", "password": "min 8 chars" }`
 201: `{ "user": { "id": 1, "fullName": "...", "email": "...", "role": "user" }, "token": "..." }`
 409 if the email already exists. New accounts are always role `user`.
 
 ### `POST /auth/login`
+
 Body: `{ "email": "aline@example.com", "password": "..." }`
 200: `{ "user": { "id": 1, "fullName": "...", "email": "...", "role": "user" }, "token": "..." }`
 401 `UNAUTHORIZED` "Invalid email or password". The message is the same whether the email or the password is wrong.
@@ -39,80 +41,124 @@ Body: `{ "email": "aline@example.com", "password": "..." }`
 ## Health
 
 ### `GET /health`
+
 200: `{ "status": "ok", "service": "medicheck-api", "database": "up", "uptimeSeconds": 12, "timestamp": "..." }`
 503 with `"status": "degraded", "database": "down"` when the database is unreachable.
 
 ## Verify
 
-### `POST /verify/barcode`  (token optional)
+### `POST /verify/barcode` (token optional)
+
 Body: `{ "barcode": "6001234567890" }`
 If a valid token is sent, the response also contains the user's allergy alerts. Without a token the check is anonymous (no allergy alerts, logged without a user).
 
 200:
+
 ```json
 {
   "status": "verified",
   "message": "Verified: this product matches a registered, authentic record.",
-  "medicine": { "id": 1, "name": "Paracetamol 500 mg tablets", "manufacturer": "Example Pharma Ltd",
-                "registrationNumber": "RW-0001", "barcode": "6001234567890" },
+  "medicine": {
+    "id": 1,
+    "name": "Paracetamol 500 mg tablets",
+    "manufacturer": "Example Pharma Ltd",
+    "registrationNumber": "RW-0001",
+    "barcode": "6001234567890"
+  },
   "allergyAlerts": [
-    { "ingredientId": 2, "ingredient": "Amoxicillin", "severity": "severe",
-      "message": "Contains Amoxicillin, which you listed as an allergy. Talk to your doctor or pharmacist before use." }
+    {
+      "ingredientId": 2,
+      "ingredient": "Amoxicillin",
+      "severity": "severe",
+      "message": "Contains Amoxicillin, which you listed as an allergy. Talk to your doctor or pharmacist before use."
+    }
   ],
   "disclaimer": "MediCheck gives information only. It doesn't replace advice from your doctor or pharmacist."
 }
 ```
+
 For `not_found`, `medicine` is `null` and `allergyAlerts` is `[]`.
 
 Every result also has `ingredientsKnown` (true or false) and `ingredientsNote` (text or null). When we have the medicine but not its ingredient list, `ingredientsKnown` is false and `ingredientsNote` explains that we could not check it against the user's allergies. The app must show this note, because an empty `allergyAlerts` list does not mean "no risk" in that case.
 
-
 ### `POST /verify/photo`
+
 Body: `{ "image": "<base64 JPEG, no data: prefix>" }`. Up to 5 MB. The photo is read and discarded, never stored.
 200: ranked candidates, best first, up to 5. Never a single verdict: the user picks one.
+
 ```json
-{ "candidates": [ { "medicineId": 1, "name": "Panadol", "manufacturer": "GSK", "confidence": 0.92 } ],
-  "disclaimer": "..." }
+{
+  "candidates": [
+    {
+      "medicineId": 1,
+      "name": "Panadol",
+      "manufacturer": "GSK",
+      "confidence": 0.92
+    }
+  ],
+  "disclaimer": "..."
+}
 ```
+
 `confidence` is from 0 to 1. 422 `UNREADABLE` when no text is found or nothing matches a medicine. 400 if `image` is missing or not base64.
 
 503 `SERVICE_UNAVAILABLE` when the photo-reading service is down or out of quota. The app should suggest searching by name.
 
-### `POST /verify/medicine`  (token optional)
+### `POST /verify/medicine` (token optional)
+
 Body: `{ "medicineId": 1 }`. Used after the user picks one of the photo candidates.
 200: the same shape as `POST /verify/barcode` (status, message, medicine, allergyAlerts, disclaimer). 404 if the medicine is unknown, 400 if `medicineId` is not a positive whole number.
 
 ## Allergy profile (token required, each user sees only their own)
 
 ### `GET /ingredients?q=amox`
+
 Public list used by the allergy picker. 200: `{ "ingredients": [ { "id": 2, "name": "Amoxicillin" } ] }`
 
 ### `GET /allergies`
+
 200: `{ "allergies": [ { "id": 1, "ingredientId": 2, "ingredient": "Amoxicillin", "severity": "severe" } ] }`
 
 ### `POST /allergies`
+
 Body: `{ "ingredientId": 2, "severity": "severe" }`. Severity is `mild`, `moderate` or `severe`.
 201: `{ "id": 1, "ingredientId": 2, "ingredient": "Amoxicillin", "severity": "severe" }`
 400 if the severity is invalid, 404 if the ingredient is unknown, 409 if it is already in your list.
 
 ### `DELETE /allergies/:id`
+
 204. 404 if it is not yours.
 
 ### `GET /allergies/check?medicineId=1`
+
 200: `{ "medicineId": 1, "hasAlert": true, "allergyAlerts": [ ... ], "disclaimer": "..." }`
 
 ## Medicines and reports
 
-### `GET /medicines/search?q=parac`  (token optional)
+### `GET /medicines/search?q=parac` (token optional)
+
 200: `{ "results": [ { "status": "verified", "message": "...", "medicine": { ... }, "allergyAlerts": [] } ], "disclaimer": "..." }`
 Same allergy behaviour as `/verify/barcode`. `q` needs at least 2 characters.
 
 ### `GET /medicines/:id`
+
 Details for the result screen. 200: `{ "medicine": { ...same fields as above, "verifiedStatus": "verified" }, "ingredients": [ { "id": 1, "name": "Paracetamol", "strength": "500 mg" } ], "disclaimer": "..." }`. 404 if unknown.
 
-### `POST /reports`  (token optional)
+### `GET /medicines/:id/interactions` (token required)
+
+Checks this medicine against the medicines the user listed under `/me/medications`. Each listed name is fuzzy-matched the same way photo verification matches OCR text; a name that doesn't confidently match anything we carry is skipped, not guessed.
+
+200: `{ "interactions": [ { "withMedicationName": "Warfarin 5mg", "ingredient": "Ibuprofen", "withIngredient": "Warfarin", "level": "Major" } ] }`
+
+- `level` is `"Major"` or `"Moderate"` (from DDInter; Minor and Unknown levels are not surfaced).
+- An empty array means no known interaction was found between this medicine and the user's listed medications — it does **not** mean "nothing to worry about" if the user hasn't listed anything, so the app should not phrase it that way.
+- 401 if not logged in. 404 is not thrown for an unknown medicine id; it is simply treated as having no ingredients, so the result is an empty list.
+
+### `POST /reports` (token optional)
+
 Body: `{ "medicineId": 1, "description": "Packaging looks different", "location": "Kimironko" }`
 201: `{ "report": { "id": 1, "status": "new" } }`
+
 - `medicineId` is optional. Send it when the product is in our records. If the product is not in our records, leave it out and write the product name in `description`.
 - `description` is required, 5 to 1000 characters.
 - `location` is optional, up to 150 characters.
@@ -124,7 +170,9 @@ Body: `{ "medicineId": 1, "description": "Packaging looks different", "location"
 All routes in this section require a bearer token. Each user can access only their own profile and medications.
 
 ### `GET /me`
+
 200:
+
 ```json
 {
   "user": {
@@ -135,45 +183,58 @@ All routes in this section require a bearer token. Each user can access only the
     "email": "aline@example.com",
     "phone": "+250788000000"
   },
-  "doctor": { "name": "Dr. Mutesi", "phone": "+250788000001", "email": "doctor@example.com" },
+  "doctor": {
+    "name": "Dr. Mutesi",
+    "phone": "+250788000001",
+    "email": "doctor@example.com"
+  },
   "pharmacy": { "name": "Kigali Pharmacy", "phone": "+250788000002" }
 }
 ```
+
 `doctor` and `pharmacy` are `null` until configured. `firstName` is the first word of `fullName`; `lastName` is the remaining text, or an empty string when there is no remaining text.
 
 ### `PUT /me/account`
+
 Body: `{ "fullName": "Aline Uwase", "email": "aline@example.com", "phone": "+250788000000" }`
 200: returns the same `{ "user": ..., "doctor": ..., "pharmacy": ... }` shape as `GET /me`.
 All three fields are required. `409 CONFLICT` if the email belongs to another account.
 
 ### `PUT /me/doctor`
+
 Body: `{ "name": "Dr. Mutesi", "phone": "+250788000001", "email": "doctor@example.com" }`
 200: `{ "doctor": { "name": "Dr. Mutesi", "phone": "+250788000001", "email": "doctor@example.com" } }`
 `name` and `phone` are required. `email` is optional and may be omitted or set to `null`.
 
 ### `PUT /me/pharmacy`
+
 Body: `{ "name": "Kigali Pharmacy", "phone": "+250788000002" }`
 200: `{ "pharmacy": { "name": "Kigali Pharmacy", "phone": "+250788000002" } }`
 Both fields are required.
 
 ### `GET /me/medications`
+
 200: `{ "medications": [ { "id": 1, "name": "Warfarin" } ] }`
 
 ### `POST /me/medications`
+
 Body: `{ "name": "Warfarin" }`
 201: `{ "id": 1, "name": "Warfarin" }`
 `name` is required. Medication names are user-entered and may be duplicated.
 
 ### `GET /me/medications/:id`
+
 200: `{ "id": 1, "name": "Warfarin" }`
 404 if the medication does not exist or is not yours.
 
 ### `PUT /me/medications/:id`
+
 Body: `{ "name": "Warfarin" }`
 200: `{ "id": 1, "name": "Warfarin" }`
 `name` is required. 404 if the medication does not exist or is not yours.
 
 ### `DELETE /me/medications/:id`
+
 204. 404 if the medication does not exist or is not yours.
 
 Invalid bodies and IDs return `400 VALIDATION_ERROR`. All errors use the standard error shape defined above.
