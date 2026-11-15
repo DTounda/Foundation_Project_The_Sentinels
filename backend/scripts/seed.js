@@ -1,4 +1,4 @@
-﻿
+
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
@@ -42,7 +42,6 @@ const UNCERTAIN_WORDS = [
 
 const DOSAGE_FORM_ENDING =
   /\b(?:for\s+)?(?:pressurised|pressurized)?\s*(?:tablets?|capsules?|injections?|inhalations?|suspensions?|syrups?|solutions?|emulsions?|creams?|ointments?|drops?|gels?|powders?|infusions?|suppositories|sprays?|patches?)\s*$/i;
-  /\b(?:pressurised|pressurized)?\s*(?:tablets?|capsules?|injections?|inhalations?|suspensions?|syrups?|solutions?|emulsions?|creams?|ointments?|drops?|gels?|powders?|infusions?|suppositories|sprays?|patches?)\s*$/i;
 
 const STANDARD_WORDS = /\b(?:usp|bp|ph\.?\s*eur|usp-nf)\b/gi;
 
@@ -57,7 +56,7 @@ const STRENGTH_PATTERN = new RegExp(
 function isMissing(value) {
   if (value === null || value === undefined) return true;
   const text = String(value).trim().toLowerCase();
-  return ['', '-', 'â€”', 'â€“', 'n/a', 'na'].includes(text);
+  return ['', '-', 'Ã¢â‚¬â€', 'Ã¢â‚¬â€œ', 'n/a', 'na'].includes(text);
 }
 
 function normalizeText(value) {
@@ -94,7 +93,7 @@ function removeStrength(value) {
   return normalizeText(value)
     .replace(
       new RegExp(
-        String.raw`\b\d+(?:[.,]\d+)?\s*\\/\s*\d+(?:[.,]\d+)?\s*${STRENGTH_UNIT}?\b`,
+        String.raw`\b\d+(?:[.,]\d+)?\s*\/\s*\d+(?:[.,]\d+)?\s*${STRENGTH_UNIT}?\b`,
         'gi',
       ),
       ' ',
