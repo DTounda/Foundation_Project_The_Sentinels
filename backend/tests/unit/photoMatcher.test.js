@@ -30,6 +30,42 @@ describe('photoMatcher', () => {
     expect(findCandidates('Batch 22 Exp 2027', MEDICINES)).toEqual([]);
   });
 
+  it('only scores 100% for the exact brand, not a same-stem sibling', () => {
+    // Regression test: NAT-C and NAT-D used to both score 100% for either
+    // photo, because the distinguishing suffix letter was dropped before
+    // scoring and both names collapsed to "nat".
+    const SIBLINGS = [
+      { id: 10, name: 'NAT-C', manufacturer: 'X' },
+      { id: 11, name: 'NAT-D', manufacturer: 'X' },
+    ];
+
+    const [bestForC] = findCandidates('NAT-C 500mg Vitamin', SIBLINGS);
+    expect(bestForC.medicineId).toBe(10);
+    expect(bestForC.confidence).toBe(1);
+
+    const [bestForD] = findCandidates('NAT-D 500mg Vitamin', SIBLINGS);
+    expect(bestForD.medicineId).toBe(11);
+    expect(bestForD.confidence).toBe(1);
+  });
+
+  it('shows nothing, not a guess, when the distinguishing letter cannot be read', () => {
+    const SIBLINGS = [
+      { id: 10, name: 'NAT-C', manufacturer: 'X' },
+      { id: 11, name: 'NAT-D', manufacturer: 'X' },
+    ];
+
+    expect(findCandidates('NAT 500mg Vitamin', SIBLINGS)).toEqual([]);
+  });
+
+  it('does not treat a dosage unit as part of the identifying name', () => {
+    // "Warfex" (what a user types as a current medication) must still match
+    // "Warfex 5 mg tablets" (the catalog name) despite "mg" and "tablets".
+    const MATCHING = [{ id: 20, name: 'Warfex 5 mg tablets', manufacturer: 'X' }];
+    const [best] = findCandidates('Warfex', MATCHING);
+    expect(best.medicineId).toBe(20);
+    expect(best.confidence).toBe(1);
+  });
+
   it('never returns more than 5 candidates, best first', () => {
     const many = Array.from({ length: 10 }, (_, i) => ({ id: i, name: `Panadol ${i}` }));
     const result = findCandidates('Panadol', many);
