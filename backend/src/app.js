@@ -20,6 +20,8 @@ function createApp({
   const app = express();
 
   app.disable('x-powered-by');
+  // Render sits in front of the API, so read the real phone IP for rate limits.
+  if (config.nodeEnv === 'production') app.set('trust proxy', 1);
   app.use(helmet());
   app.use(
     cors({
