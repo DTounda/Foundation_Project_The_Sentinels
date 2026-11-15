@@ -7,6 +7,7 @@ import { getMedicineDetails, checkInteractions } from '../services/api';
 import { DOSAGE_NOTICE } from '../constants/safetyText';
 import { ROUTES } from '../navigation/routes';
 import { COLORS } from '../constants/colors';
+import { ErrorMessage } from '../components/LoadingAndError';
 
 /**
  * Result screen (see the "Result" frame in the MediCheck Figma).
@@ -19,6 +20,8 @@ export default function ResultScreen({ route, navigation }) {
 
   const [ingredients, setIngredients] = useState([]);
   const [loadingIngredients, setLoadingIngredients] = useState(false);
+  const [ingredientsError, setIngredientsError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [interactions, setInteractions] = useState([]);
 
   // Hooks run on every render, so this sits above the early return.
@@ -31,6 +34,7 @@ export default function ResultScreen({ route, navigation }) {
 
     let cancelled = false;
     setLoadingIngredients(true);
+    setIngredientsError(false);
 
     getMedicineDetails(medicineId)
       .then((data) => {
@@ -38,7 +42,10 @@ export default function ResultScreen({ route, navigation }) {
       })
       .catch(() => {
         // Never let a failed ingredient load break the verdict.
-        if (!cancelled) setIngredients([]);
+        if (!cancelled) {
+          setIngredients([]);
+          setIngredientsError(true);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoadingIngredients(false);
@@ -53,7 +60,7 @@ export default function ResultScreen({ route, navigation }) {
     return () => {
       cancelled = true;
     };
-  }, [medicineId]);
+  }, [medicineId, reloadKey]);
 
   if (!result) {
     return (
@@ -116,6 +123,8 @@ export default function ResultScreen({ route, navigation }) {
 
             {loadingIngredients ? (
               <ActivityIndicator size="small" color={COLORS.slate} />
+            ) : ingredientsError ? (
+              <ErrorMessage message="We could not load the ingredients." onRetry={() => setReloadKey((k) => k + 1)} />
             ) : ingredients.length > 0 ? (
               ingredients.map((ingredient) => (
                 <Text key={ingredient.id ?? ingredient.name} style={styles.ingredientText}>
