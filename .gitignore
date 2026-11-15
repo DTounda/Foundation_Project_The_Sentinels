@@ -7,3 +7,7 @@ node_modules/
 # Local database backup
 medicheck_backup.sql
 coverage/
+
+# DDInter interaction data (13MB+, downloaded locally, not committed)
+backend/data/ddinter/
+backend/scripts/ddinter_unmatched_drugs.json

@@ -1,5 +1,9 @@
-
 require('dotenv').config();
+
+// Some networks block the DNS lookup `mongodb+srv://` needs; this matches the
+// fix already in src/config/mongo.js.
+const dns = require('dns');
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 const { MongoClient } = require('mongodb');
 
@@ -11,6 +15,7 @@ const COLLECTIONS = [
   'VerificationLogs',
   'SuspiciousReports',
   'counters',
+  'Interactions',
 ];
 
 async function createIndexes() {
@@ -40,10 +45,7 @@ async function createIndexes() {
     // Medicines
     const medicines = db.collection('Medicines');
 
-    await medicines.createIndex(
-      { medicineId: 1 },
-      { unique: true, name: 'unique_medicine_id' },
-    );
+    await medicines.createIndex({ medicineId: 1 }, { unique: true, name: 'unique_medicine_id' });
 
     await medicines.createIndex(
       { fdaSerialNumber: 1 },
@@ -54,10 +56,7 @@ async function createIndexes() {
       },
     );
 
-    await medicines.createIndex(
-      { registrationNumber: 1 },
-      { name: 'registration_number_index' },
-    );
+    await medicines.createIndex({ registrationNumber: 1 }, { name: 'registration_number_index' });
 
     await medicines.createIndex(
       { barcode: 1 },
@@ -68,15 +67,9 @@ async function createIndexes() {
       },
     );
 
-    await medicines.createIndex(
-      { brandName: 1 },
-      { name: 'medicine_brand_name_index' },
-    );
+    await medicines.createIndex({ brandName: 1 }, { name: 'medicine_brand_name_index' });
 
-    await medicines.createIndex(
-      { genericName: 1 },
-      { name: 'medicine_generic_name_index' },
-    );
+    await medicines.createIndex({ genericName: 1 }, { name: 'medicine_generic_name_index' });
 
     // Ingredients
     const ingredients = db.collection('Ingredients');
@@ -92,23 +85,16 @@ async function createIndexes() {
     );
 
     // Users
-    await db.collection('Users').createIndex(
-      { email: 1 },
-      { unique: true, name: 'unique_user_email' },
-    );
+    await db
+      .collection('Users')
+      .createIndex({ email: 1 }, { unique: true, name: 'unique_user_email' });
 
     // UserAllergies
     const userAllergies = db.collection('UserAllergies');
 
-    await userAllergies.createIndex(
-      { allergyId: 1 },
-      { unique: true, name: 'unique_allergy_id' },
-    );
+    await userAllergies.createIndex({ allergyId: 1 }, { unique: true, name: 'unique_allergy_id' });
 
-    await userAllergies.createIndex(
-      { userId: 1 },
-      { name: 'user_allergies_user_index' },
-    );
+    await userAllergies.createIndex({ userId: 1 }, { name: 'user_allergies_user_index' });
 
     await userAllergies.createIndex(
       { userId: 1, ingredientId: 1 },
@@ -118,42 +104,29 @@ async function createIndexes() {
     // VerificationLogs
     const verificationLogs = db.collection('VerificationLogs');
 
-    await verificationLogs.createIndex(
-      { userId: 1 },
-      { name: 'verification_user_index' },
-    );
+    await verificationLogs.createIndex({ userId: 1 }, { name: 'verification_user_index' });
 
-    await verificationLogs.createIndex(
-      { medicineId: 1 },
-      { name: 'verification_medicine_index' },
-    );
+    await verificationLogs.createIndex({ medicineId: 1 }, { name: 'verification_medicine_index' });
 
-    await verificationLogs.createIndex(
-      { createdAt: 1 },
-      { name: 'verification_created_at_index' },
-    );
+    await verificationLogs.createIndex({ createdAt: 1 }, { name: 'verification_created_at_index' });
 
     // SuspiciousReports
     const reports = db.collection('SuspiciousReports');
 
-    await reports.createIndex(
-      { userId: 1 },
-      { name: 'report_user_index' },
-    );
+    await reports.createIndex({ userId: 1 }, { name: 'report_user_index' });
 
-    await reports.createIndex(
-      { medicineId: 1 },
-      { name: 'report_medicine_index' },
-    );
+    await reports.createIndex({ medicineId: 1 }, { name: 'report_medicine_index' });
 
-    await reports.createIndex(
-      { status: 1 },
-      { name: 'report_status_index' },
-    );
+    await reports.createIndex({ status: 1 }, { name: 'report_status_index' });
 
-    await reports.createIndex(
-      { createdAt: 1 },
-      { name: 'report_created_at_index' },
+    await reports.createIndex({ createdAt: 1 }, { name: 'report_created_at_index' });
+
+    // Interactions
+    const interactions = db.collection('Interactions');
+
+    await interactions.createIndex(
+      { ingredientIdA: 1, ingredientIdB: 1 },
+      { unique: true, name: 'unique_interaction_pair' },
     );
 
     console.log('MongoDB collections and indexes created successfully.');
@@ -162,7 +135,7 @@ async function createIndexes() {
   }
 }
 
-createIndexes().catch(error => {
+createIndexes().catch((error) => {
   console.error('Index creation failed:', error.message);
   process.exitCode = 1;
 });
