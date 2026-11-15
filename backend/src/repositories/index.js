@@ -18,6 +18,8 @@ const { createMongoVerificationLogRepository } = require('./mongo/verificationLo
 const { createMongoReportRepository } = require('./mongo/reportRepository');
 const { createMongoUserMedicationRepository } = require('./mongo/userMedicationRepository');
 
+const { createMongoInteractionRepository } = require('./mongo/interactionRepository');
+
 function createMysqlRepositories(pool) {
   return {
     medicineRepository: createMedicineRepository(pool),
@@ -38,6 +40,7 @@ function createMongoRepositories(db) {
     verificationLogRepository: createMongoVerificationLogRepository(db),
     reportRepository: createMongoReportRepository(db),
     userMedicationRepository: createMongoUserMedicationRepository(db),
+    interactionRepository: createMongoInteractionRepository(db),
   };
 }
 

@@ -1,4 +1,3 @@
-
 /**
  * In-memory repositories with the same methods as the MySQL ones.
  * They let us test the whole API (routes -> controllers -> services) without a database.
@@ -37,12 +36,21 @@ const SAMPLE_MEDICINES = [
     barcode: '6001234567893',
     verifiedStatus: 'flagged',
   },
+  {
+    id: 5,
+    name: 'Warfex 5 mg tablets',
+    manufacturer: 'Example Pharma Ltd',
+    registrationNumber: 'RW-0005',
+    barcode: '6001234567894',
+    verifiedStatus: 'verified',
+  },
 ];
 
 const SAMPLE_INGREDIENTS = [
   { id: 1, name: 'Paracetamol', strength: '500 mg' },
   { id: 2, name: 'Amoxicillin', strength: '250 mg' },
   { id: 3, name: 'Ibuprofen', strength: '400 mg' },
+  { id: 4, name: 'Warfarin', strength: '5 mg' },
 ];
 
 /** medicine id -> ingredient ids (mirrors the MedicineIngredients table) */
@@ -51,9 +59,16 @@ const SAMPLE_MEDICINE_INGREDIENTS = {
   2: [2],
   3: [3],
   4: [1, 3],
+  5: [4],
 };
 
-function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
+/** A known Major interaction used by the interactions tests: ibuprofen x warfarin. */
+const SAMPLE_INTERACTIONS = [{ ingredientIdA: 3, ingredientIdB: 4, level: 'Major' }];
+
+function createFakeRepositories({
+  medicines = SAMPLE_MEDICINES,
+  interactions: interactionPairs = SAMPLE_INTERACTIONS,
+} = {}) {
   const logs = [];
   const allergies = [];
   const reports = [];
@@ -62,9 +77,7 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
     async searchByName(query) {
       const search = query.toLowerCase();
 
-      return medicines.filter((medicine) =>
-        medicine.name.toLowerCase().includes(search),
-      );
+      return medicines.filter((medicine) => medicine.name.toLowerCase().includes(search));
     },
 
     async listForMatching() {
@@ -99,8 +112,7 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
       const results = new Map();
 
       for (const medicineId of medicineIds) {
-        const ingredientIds =
-          SAMPLE_MEDICINE_INGREDIENTS[medicineId] || [];
+        const ingredientIds = SAMPLE_MEDICINE_INGREDIENTS[medicineId] || [];
 
         const ingredients = ingredientIds.map((id) => {
           const ingredient = SAMPLE_INGREDIENTS.find((item) => item.id === id);
@@ -127,9 +139,9 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
     async list(query = '') {
       const search = query.toLowerCase();
 
-      return SAMPLE_INGREDIENTS
-        .filter((ingredient) => ingredient.name.toLowerCase().includes(search))
-        .map(({ id, name }) => ({ id, name }));
+      return SAMPLE_INGREDIENTS.filter((ingredient) =>
+        ingredient.name.toLowerCase().includes(search),
+      ).map(({ id, name }) => ({ id, name }));
     },
   };
 
@@ -143,17 +155,13 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
     async findByUserAndIngredient(userId, ingredientId) {
       return (
         allergies.find(
-          (allergy) =>
-            allergy.userId === userId &&
-            allergy.ingredientId === ingredientId,
+          (allergy) => allergy.userId === userId && allergy.ingredientId === ingredientId,
         ) || null
       );
     },
 
     async add(userId, ingredientId, severity) {
-      const ingredient = SAMPLE_INGREDIENTS.find(
-        (item) => item.id === ingredientId,
-      );
+      const ingredient = SAMPLE_INGREDIENTS.find((item) => item.id === ingredientId);
       const id = allergies.length + 1;
 
       allergies.push({
@@ -187,12 +195,7 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
   };
 
   const reportRepository = {
-    async create({
-      userId = null,
-      medicineId = null,
-      description,
-      location = null,
-    }) {
+    async create({ userId = null, medicineId = null, description, location = null }) {
       const report = {
         id: reports.length + 1,
         userId,
@@ -311,6 +314,19 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
     },
   };
 
+  const interactionRepository = {
+    async findBetweenIngredientSets(idsA, idsB) {
+      const a = new Set((idsA || []).map(Number));
+      const b = new Set((idsB || []).map(Number));
+
+      return interactionPairs.filter(
+        (pair) =>
+          (a.has(pair.ingredientIdA) && b.has(pair.ingredientIdB)) ||
+          (a.has(pair.ingredientIdB) && b.has(pair.ingredientIdA)),
+      );
+    },
+  };
+
   return {
     medicineRepository,
     verificationLogRepository,
@@ -319,6 +335,7 @@ function createFakeRepositories({ medicines = SAMPLE_MEDICINES } = {}) {
     ingredientRepository,
     userAllergyRepository,
     userMedicationRepository,
+    interactionRepository,
     _logs: logs,
     _users: users,
     _reports: reports,

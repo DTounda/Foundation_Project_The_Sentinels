@@ -26,6 +26,7 @@ const { createMeController } = require('../controllers/me.controller');
 const { createMeRoutes } = require('./me.routes');
 const { createMeService } = require('../services/meService');
 const { createMedicationService } = require('../services/medicationService');
+const { createInteractionService } = require('../services/interactionService');
 
 /**
  * Builds the /api/v1 router.
@@ -51,6 +52,12 @@ function buildRouter({
     const verificationService = createVerificationService({ ...repositories, allergyService });
     const medicineService = createMedicineService({
       medicineRepository: repositories.medicineRepository,
+    });
+
+    const interactionService = createInteractionService({
+      medicineRepository: repositories.medicineRepository,
+      userMedicationRepository: repositories.userMedicationRepository,
+      interactionRepository: repositories.interactionRepository,
     });
 
     const reportService = createReportService({
@@ -79,7 +86,8 @@ function buildRouter({
     );
     router.use(
       createMedicineRoutes({
-        medicineController: createMedicineController({ medicineService }),
+        medicineController: createMedicineController({ medicineService, interactionService }),
+        requireAuth: auth.requireAuth,
       }),
     );
     router.use(
