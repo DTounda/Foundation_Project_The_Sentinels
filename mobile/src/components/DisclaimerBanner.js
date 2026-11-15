@@ -1,5 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import Icon from './Icon';
+import { COLORS, FONTS } from '../constants/theme';
 
 export const DISCLAIMER_TEXT =
   'MediCheck gives information only. It does not replace advice from your doctor or pharmacist.';
@@ -8,6 +10,7 @@ export const DISCLAIMER_TEXT =
 export default function DisclaimerBanner() {
   return (
     <View style={styles.banner} testID="disclaimer-banner" accessibilityRole="summary">
+      <Icon name="info" size={18} color={COLORS.primaryDark} />
       <Text style={styles.text}>{DISCLAIMER_TEXT}</Text>
     </View>
   );
@@ -15,11 +18,8 @@ export default function DisclaimerBanner() {
 
 const styles = StyleSheet.create({
   banner: {
-    backgroundColor: '#EEF4FF',
-    borderTopWidth: 1,
-    borderTopColor: '#C7D7FE',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    flexDirection: 'row', gap: 10, alignItems: 'flex-start',
+    backgroundColor: COLORS.primarySoft, paddingVertical: 14, paddingHorizontal: 20,
   },
-  text: { fontSize: 14, color: '#1D3A8A', textAlign: 'center' },
+  text: { flex: 1, fontFamily: FONTS.regular, fontSize: 13, lineHeight: 19, color: COLORS.primaryDark },
 });

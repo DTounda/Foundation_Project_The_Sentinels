@@ -1,21 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  ScrollView,
-  Text,
-  TextInput,
-  Pressable,
-  ActivityIndicator,
-  StyleSheet,
-} from 'react-native';
+import { View, ScrollView, Text, Pressable, StyleSheet } from 'react-native';
 import { register, getIngredients, addAllergy } from '../services/api';
 import { storeMedication } from '../services/profileStore';
 import { ROUTES } from '../navigation/routes';
-import { COLORS } from '../constants/colors';
+import { Screen, Header, Title, Body, Button, Field, Card, Chip, Toggle, SectionTitle, Notice } from '../components/ui';
+import Icon from '../components/Icon';
+import { COLORS, FONTS } from '../constants/theme';
 
 // Step 1 creates the account, so step 2 can already save allergies.
 
 const SEVERITIES = ['mild', 'moderate', 'severe'];
+
+function Progress({ step }) {
+  return (
+    <View style={{ gap: 8 }}>
+      <View style={styles.progress}>
+        <View style={[styles.bar, styles.barOn]} />
+        <View style={[styles.bar, step === 2 && styles.barOn]} />
+      </View>
+      <Text style={styles.stepText}>
+        Step {step} of 2 · {step === 1 ? 'Your details' : 'Your health'}
+      </Text>
+    </View>
+  );
+}
 
 export default function SignUpScreen({ navigation, route }) {
   const redirectTo = route?.params?.redirectTo || ROUTES.HOME;
@@ -24,14 +32,12 @@ export default function SignUpScreen({ navigation, route }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  // Step 1
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
 
-  // Step 2
   const [query, setQuery] = useState('');
   const [ingredients, setIngredients] = useState([]);
   const [chosen, setChosen] = useState([]); // [{ id, name, severity }]
@@ -113,207 +119,128 @@ export default function SignUpScreen({ navigation, route }) {
 
   if (step === 1) {
     return (
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Create your account</Text>
-        <Text style={styles.hint}>Step 1 of 2</Text>
-
-        {!!error && <Text style={styles.error}>{error}</Text>}
-
-        <TextInput style={styles.input} placeholder="First name" value={firstName} onChangeText={setFirstName} />
-        <TextInput style={styles.input} placeholder="Last name" value={lastName} onChangeText={setLastName} />
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Phone number"
-          keyboardType="phone-pad"
-          value={phone}
-          onChangeText={setPhone}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password (at least 8 characters)"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
-
-        <Pressable
-          style={[styles.button, busy && styles.buttonBusy]}
-          onPress={onCreateAccount}
-          disabled={busy}
-          accessibilityRole="button"
-        >
-          <Text style={styles.buttonText}>{busy ? 'Please wait...' : 'Continue'}</Text>
-        </Pressable>
-
-        <Pressable onPress={() => navigation.navigate(ROUTES.LOGIN)} accessibilityRole="button">
-          <Text style={styles.link}>Already have an account? Log in</Text>
-        </Pressable>
-      </ScrollView>
+      <Screen>
+        <Header title="Create account" onBack={navigation.canGoBack() ? navigation.goBack : null} />
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Progress step={1} />
+          {!!error && <Notice text={error} tone="error" />}
+          <View style={styles.twoCols}>
+            <Field label="First name" placeholder="Aline" value={firstName} onChangeText={setFirstName} style={{ flex: 1 }} />
+            <Field label="Last name" placeholder="Uwase" value={lastName} onChangeText={setLastName} style={{ flex: 1 }} />
+          </View>
+          <Field
+            label="Email"
+            placeholder="you@example.com"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
+          <Field label="Phone number" placeholder="+250 7XX XXX XXX" keyboardType="phone-pad" value={phone} onChangeText={setPhone} />
+          <Field
+            label="Password"
+            placeholder="At least 8 characters"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+          <Card style={styles.privacy}>
+            <Icon name="lock" size={20} color={COLORS.primary} />
+            <Body size={14} style={{ flex: 1 }}>Next, you can add your allergies. Only you can see them.</Body>
+          </Card>
+          <Button title={busy ? 'Please wait...' : 'Continue'} busy={busy} onPress={onCreateAccount} />
+          <Pressable onPress={() => navigation.navigate(ROUTES.LOGIN)} accessibilityRole="button" style={styles.link}>
+            <Text style={styles.linkText}>Already have an account? <Text style={styles.linkStrong}>Log in</Text></Text>
+          </Pressable>
+        </ScrollView>
+      </Screen>
     );
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>A few health questions</Text>
-      <Text style={styles.hint}>
-        Step 2 of 2. You can skip this and add it later under My allergies.
-      </Text>
+    <Screen>
+      <Header title="Your health" />
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Progress step={2} />
+        <Title size={24}>A few health questions</Title>
+        <Body size={14}>You can skip this and add it later under Allergies and Profile.</Body>
+        {!!error && <Notice text={error} tone="error" />}
 
-      {!!error && <Text style={styles.error}>{error}</Text>}
+        <Card>
+          <SectionTitle>Are you allergic to any ingredient?</SectionTitle>
+          <Field icon="search" placeholder="Search an ingredient, e.g. amox" autoCapitalize="none" value={query} onChangeText={setQuery} />
+          <View style={styles.wrap}>
+            {ingredients.length === 0 ? (
+              <Body size={13} color={COLORS.muted}>No ingredients match.</Body>
+            ) : (
+              ingredients.slice(0, 10).map((item) => (
+                <Toggle
+                  key={item.id}
+                  label={item.name}
+                  on={chosen.some((c) => c.id === item.id)}
+                  onPress={() => toggleIngredient(item)}
+                />
+              ))
+            )}
+          </View>
+        </Card>
 
-      <Text style={styles.sectionTitle}>Are you allergic to any ingredient?</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Search an ingredient, e.g. amox"
-        value={query}
-        onChangeText={setQuery}
-        autoCapitalize="none"
-      />
-      <View style={styles.pickList}>
-        {ingredients.length === 0 ? (
-          <Text style={styles.empty}>No ingredients match.</Text>
-        ) : (
-          ingredients.slice(0, 8).map((item) => {
-            const on = !!chosen.find((c) => c.id === item.id);
-            return (
-              <Pressable
-                key={String(item.id)}
-                onPress={() => toggleIngredient(item)}
-                accessibilityRole="button"
-                style={[styles.pickRow, on && styles.pickRowOn]}
-              >
-                <Text style={on ? styles.pickTextOn : styles.pickText}>{item.name}</Text>
-              </Pressable>
-            );
-          })
-        )}
-      </View>
-
-      {chosen.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>How bad is each one?</Text>
-          {chosen.map((c) => (
-            <View key={String(c.id)} style={styles.chosenRow}>
-              <Text style={styles.chosenName}>{c.name}</Text>
-              <View style={styles.chips}>
-                {SEVERITIES.map((v) => (
-                  <Pressable
-                    key={v}
-                    onPress={() => setSeverity(c.id, v)}
-                    accessibilityRole="button"
-                    style={[styles.chip, c.severity === v && styles.chipOn]}
-                  >
-                    <Text style={c.severity === v ? styles.chipTextOn : styles.chipText}>{v}</Text>
-                  </Pressable>
-                ))}
+        {chosen.length > 0 && (
+          <Card>
+            <SectionTitle>How bad is each one?</SectionTitle>
+            {chosen.map((c) => (
+              <View key={c.id} style={{ gap: 8 }}>
+                <Text style={styles.allergyName}>{c.name}</Text>
+                <View style={styles.wrap}>
+                  {SEVERITIES.map((sev) => (
+                    <Toggle key={sev} label={sev[0].toUpperCase() + sev.slice(1)} on={c.severity === sev} onPress={() => setSeverity(c.id, sev)} />
+                  ))}
+                </View>
               </View>
+            ))}
+          </Card>
+        )}
+
+        <Card>
+          <SectionTitle>Medicines you take now</SectionTitle>
+          <View style={styles.addRow}>
+            <Field
+              placeholder="e.g. Metformin"
+              value={medication}
+              onChangeText={setMedication}
+              onSubmitEditing={addMedicationToList}
+              style={{ flex: 1 }}
+            />
+            <Button title="Add" onPress={addMedicationToList} style={{ paddingHorizontal: 18 }} />
+          </View>
+          {medications.length > 0 && (
+            <View style={styles.wrap}>
+              {medications.map((m, i) => (
+                <Chip key={`${m}-${i}`} label={m} icon="pill" color={COLORS.primaryDark} background={COLORS.primarySoft} />
+              ))}
             </View>
-          ))}
-        </>
-      )}
+          )}
+        </Card>
 
-      <Text style={styles.sectionTitle}>What medicines are you taking at the moment?</Text>
-      <View style={styles.addRow}>
-        <TextInput
-          style={[styles.input, styles.addInput]}
-          placeholder="e.g. Metformin"
-          value={medication}
-          onChangeText={setMedication}
-          onSubmitEditing={addMedicationToList}
-        />
-        <Pressable style={styles.addButton} onPress={addMedicationToList} accessibilityRole="button">
-          <Text style={styles.buttonText}>Add</Text>
-        </Pressable>
-      </View>
-      {medications.length === 0 ? (
-        <Text style={styles.empty}>Nothing added.</Text>
-      ) : (
-        medications.map((m, i) => (
-          <Text key={`${m}-${i}`} style={styles.medItem}>
-            {m}
-          </Text>
-        ))
-      )}
-
-      {busy ? (
-        <ActivityIndicator style={styles.spinner} size="small" color="#0b7a54" />
-      ) : (
-        <Pressable style={styles.button} onPress={onFinish} accessibilityRole="button">
-          <Text style={styles.buttonText}>Finish</Text>
-        </Pressable>
-      )}
-
-      <Pressable
-        onPress={() => navigation.replace(ROUTES.TABS, { screen: redirectTo })}
-        accessibilityRole="button"
-      >
-        <Text style={styles.link}>Skip for now</Text>
-      </Pressable>
-    </ScrollView>
+        <Button title={busy ? 'Saving...' : 'Finish'} busy={busy} onPress={onFinish} />
+        <Button title="Skip for now" kind="ghost" onPress={() => navigation.replace(ROUTES.TABS, { screen: redirectTo })} />
+      </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.white },
-  content: { padding: 20, paddingBottom: 48 },
-  title: { fontSize: 22, fontWeight: '700', color: COLORS.ink },
-  hint: { fontSize: 12, color: COLORS.slate, marginTop: 4, marginBottom: 18 },
-  sectionTitle: { fontSize: 15, fontWeight: '600', color: COLORS.ink, marginTop: 20, marginBottom: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 9,
-    padding: 11,
-    marginBottom: 10,
-    fontSize: 14,
-    color: COLORS.ink,
-  },
-  button: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 9,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonBusy: { opacity: 0.7 },
-  buttonText: { color: COLORS.white, fontWeight: '600', fontSize: 14 },
-  link: { marginTop: 16, textAlign: 'center', color: COLORS.primary, fontSize: 13 },
-  error: { color: COLORS.danger, marginBottom: 10, lineHeight: 18, fontSize: 13 },
-  pickList: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 9, overflow: 'hidden' },
-  pickRow: { padding: 11, borderBottomWidth: 1, borderColor: COLORS.border },
-  pickRowOn: { backgroundColor: COLORS.primaryLight },
-  pickText: { color: COLORS.slate, fontSize: 14 },
-  pickTextOn: { color: COLORS.primaryDark, fontWeight: '600', fontSize: 14 },
-  chosenRow: { marginBottom: 14 },
-  chosenName: { fontSize: 14, color: COLORS.ink, marginBottom: 6 },
-  chips: { flexDirection: 'row', gap: 8 },
-  chip: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 999,
-    paddingVertical: 5,
-    paddingHorizontal: 13,
-  },
-  chipOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { color: COLORS.slate, fontSize: 12 },
-  chipTextOn: { color: COLORS.white, fontSize: 12, fontWeight: '600' },
-  addRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-  addInput: { flex: 1 },
-  addButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 9,
-    paddingVertical: 11,
-    paddingHorizontal: 16,
-  },
-  medItem: { paddingVertical: 8, color: COLORS.slate, fontSize: 14, borderBottomWidth: 1, borderColor: COLORS.border },
-  empty: { color: COLORS.muted, fontStyle: 'italic', padding: 11, fontSize: 13 },
-  spinner: { marginTop: 20 },
+  content: { padding: 24, paddingTop: 8, gap: 16 },
+  progress: { flexDirection: 'row', gap: 6 },
+  bar: { flex: 1, height: 6, borderRadius: 3, backgroundColor: COLORS.border },
+  barOn: { backgroundColor: COLORS.primary },
+  stepText: { fontFamily: FONTS.semibold, fontSize: 13, color: COLORS.muted },
+  twoCols: { flexDirection: 'row', gap: 12 },
+  privacy: { flexDirection: 'row', alignItems: 'flex-start', padding: 14 },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  allergyName: { fontFamily: FONTS.semibold, fontSize: 15, color: COLORS.ink },
+  addRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end' },
+  link: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  linkText: { fontFamily: FONTS.regular, fontSize: 15, color: COLORS.slate },
+  linkStrong: { fontFamily: FONTS.semibold, color: COLORS.primary },
 });

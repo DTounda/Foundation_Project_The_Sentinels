@@ -119,11 +119,8 @@ export async function hasToken() {
   return !!(await AsyncStorage.getItem('token'));
 }
 
-// Kept from Tasnim's version (used by SearchScanScreen); fixed to follow docs/API.md
-export const fetchMedication = (query) =>
-  request(`/medicines/search?q=${encodeURIComponent(query)}`);
 
-// Profile endpoints. Not built yet, see docs/API.md.
+// Profile endpoints, see docs/API.md.
 
 export const getProfile = () => request('/me', { auth: true });
 
@@ -159,7 +156,7 @@ export const verifyPhoto = (base64Image) =>
 export const verifyMedicine = (medicineId) =>
   request('/verify/medicine', { method: 'POST', body: { medicineId } });
 
-// Checks the medicine against what the user already takes. Not built yet.
+// Checks the medicine against the medications listed on the user's profile.
 export async function checkInteractions(medicineId) {
   if (!(await hasToken())) return [];
   try {
@@ -169,3 +166,13 @@ export async function checkInteractions(medicineId) {
     return [];
   }
 }
+
+// Deletes the account and its personal data on the server (DELETE /me).
+export const deleteAccount = () => request('/me', { method: 'DELETE', auth: true });
+
+// The consent on the Welcome screen is kept per phone, even after logout.
+export async function hasConsented() {
+  return (await AsyncStorage.getItem('consent.v1')) === 'yes';
+}
+
+export const saveConsent = () => AsyncStorage.setItem('consent.v1', 'yes');

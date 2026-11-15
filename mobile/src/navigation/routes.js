@@ -6,8 +6,10 @@ export const ROUTES = {
   PHARMACIES: 'Pharmacies',
   PROFILE: 'Profile',
 
+  WELCOME: 'Welcome',
   LOGIN: 'Login',
   SIGN_UP: 'SignUp',
+  SEARCH_RESULTS: 'SearchResults',
   RESULT: 'Result',
   REPORT: 'Report',
   PHOTO_VERIFY: 'PhotoVerify',

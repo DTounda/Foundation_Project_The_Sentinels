@@ -1,16 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  FlatList,
-  Pressable,
-  Linking,
-  Alert,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, FlatList, Pressable, Linking, Alert, StyleSheet } from 'react-native';
 import directory from '../data/pharmacies.json';
-import { COLORS } from '../constants/colors';
+import { Screen, Title, Body, Field, Toggle } from '../components/ui';
+import Icon from '../components/Icon';
+import { COLORS, FONTS } from '../constants/theme';
 
 // Reference data, so it ships in src/data/pharmacies.json, not the API.
 
@@ -20,15 +13,17 @@ const FILTERS = [
   { key: 'hospital', label: 'Hospitals' },
 ];
 
-// Pilot is running in these districts first, so their listings should be
-// what people see without having to search or scroll past Bugesera.
+// The pilot area comes first, so people see it without searching.
 const PRIORITY_DISTRICTS = ['Kimironko', 'Gasabo'];
 
+// Kimironko is a sector, so it appears in the address, not the district.
 function priorityRank(entry) {
-  const district = String(entry.district || '').toLowerCase();
-  const idx = PRIORITY_DISTRICTS.findIndex((d) => district.includes(d.toLowerCase()));
+  const place = `${entry.district || ''} ${entry.address || ''}`.toLowerCase();
+  const idx = PRIORITY_DISTRICTS.findIndex((d) => place.includes(d.toLowerCase()));
   return idx === -1 ? PRIORITY_DISTRICTS.length : idx;
 }
+
+const TYPE_LABEL = { pharmacy: 'Pharmacy', hospital: 'Hospital', clinic: 'Clinic' };
 
 export default function PharmaciesScreen() {
   const [query, setQuery] = useState('');
@@ -36,8 +31,7 @@ export default function PharmaciesScreen() {
 
   const rawEntries = Array.isArray(directory?.entries) ? directory.entries : [];
 
-  // Stable sort: priority districts first (Kimironko, then Gasabo), then
-  // everything else in its original order.
+  // Stable sort: priority districts first, everything else keeps its order.
   const entries = useMemo(
     () => [...rawEntries].sort((a, b) => priorityRank(a) - priorityRank(b)),
     [rawEntries],
@@ -66,116 +60,84 @@ export default function PharmaciesScreen() {
     Linking.openURL(url).catch(() => Alert.alert('Phone number', phone));
   }
 
-  return (
-    <View style={styles.container}>
-      <TextInput
-        style={styles.search}
-        placeholder="Search by name, district or area"
-        value={query}
-        onChangeText={setQuery}
-        autoCapitalize="none"
-      />
-
-      <View style={styles.filters}>
-        {FILTERS.map((f) => {
-          const on = filter === f.key;
-          return (
-            <Pressable
-              key={f.key}
-              onPress={() => setFilter(f.key)}
-              accessibilityRole="button"
-              style={[styles.chip, on && styles.chipOn]}
-            >
-              <Text style={[styles.chipText, on && styles.chipTextOn]}>{f.label}</Text>
-            </Pressable>
-          );
-        })}
+  function renderItem({ item }) {
+    const isPharmacy = item.type === 'pharmacy';
+    return (
+      <View style={styles.card}>
+        <View style={[styles.icon, { backgroundColor: isPharmacy ? COLORS.successBg : COLORS.primarySoft }]}>
+          <Icon name={isPharmacy ? 'store' : 'hospital'} size={22} color={isPharmacy ? COLORS.success : COLORS.primary} />
+        </View>
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={styles.name}>{item.name}</Text>
+          <Text style={styles.meta} numberOfLines={2}>
+            {[TYPE_LABEL[item.type] || 'Health facility', item.district, item.address].filter(Boolean).join(' · ')}
+          </Text>
+        </View>
+        {item.phone ? (
+          <Pressable
+            onPress={() => call(item.phone)}
+            accessibilityRole="button"
+            accessibilityLabel={`Call ${item.name}`}
+            style={styles.call}
+          >
+            <Icon name="phone" size={20} color={COLORS.white} />
+          </Pressable>
+        ) : null}
       </View>
+    );
+  }
 
+  return (
+    <Screen>
       <FlatList
         data={visible}
         keyExtractor={(item) => String(item.id ?? item.name)}
-        contentContainerStyle={visible.length === 0 && styles.emptyWrap}
-        ListEmptyComponent={
-          <Text style={styles.empty}>
-            {entries.length === 0
-              ? 'No directory data loaded yet.'
-              : 'Nothing matches that search.'}
-          </Text>
-        }
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.meta}>
-              {[item.type === 'hospital' ? 'Hospital' : 'Pharmacy', item.district, item.address]
-                .filter(Boolean)
-                .join(' · ')}
-            </Text>
-            {item.phone ? (
-              <Pressable
-                onPress={() => call(item.phone)}
-                accessibilityRole="button"
-                style={styles.callButton}
-              >
-                <Text style={styles.callText}>Call {item.phone}</Text>
-              </Pressable>
-            ) : (
-              <Text style={styles.noPhone}>No phone number listed</Text>
-            )}
+        renderItem={renderItem}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        initialNumToRender={15}
+        ListHeaderComponent={
+          <View style={{ gap: 14, marginBottom: 4 }}>
+            <View style={{ gap: 4 }}>
+              <Title size={26}>Pharmacies</Title>
+              <Body size={14}>Kimironko and Gasabo first.</Body>
+            </View>
+            <Field
+              icon="search"
+              placeholder="Search by name, district or area"
+              autoCapitalize="none"
+              value={query}
+              onChangeText={setQuery}
+            />
+            <View style={styles.filters}>
+              {FILTERS.map((f) => (
+                <Toggle key={f.key} label={f.label} on={filter === f.key} onPress={() => setFilter(f.key)} />
+              ))}
+            </View>
           </View>
-        )}
+        }
+        ListEmptyComponent={
+          <Body size={14} color={COLORS.muted} style={{ textAlign: 'center', marginTop: 24 }}>
+            {entries.length === 0 ? 'No directory data loaded yet.' : 'Nothing matches that search.'}
+          </Body>
+        }
       />
-
-      {directory?.source ? (
-        <Text style={styles.source} numberOfLines={2}>
-          Source: {directory.source}
-        </Text>
-      ) : null}
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: COLORS.white },
-  search: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 9,
-    padding: 11,
-    fontSize: 14,
-    color: COLORS.ink,
-  },
-  filters: { flexDirection: 'row', gap: 8, marginTop: 12, marginBottom: 14 },
-  chip: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 999,
-    paddingVertical: 5,
-    paddingHorizontal: 13,
-  },
-  chipOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { color: COLORS.slate, fontSize: 13 },
-  chipTextOn: { color: COLORS.white, fontWeight: '600' },
+  content: { padding: 20, paddingTop: 12, gap: 10 },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   card: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    padding: 13,
-    marginBottom: 10,
-    gap: 5,
+    flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14,
+    backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.border, borderRadius: 16,
   },
-  name: { fontSize: 15, fontWeight: '700', color: COLORS.ink },
-  meta: { fontSize: 13, color: COLORS.slate },
-  callButton: {
-    marginTop: 4,
-    backgroundColor: COLORS.primaryLight,
-    borderRadius: 8,
-    paddingVertical: 9,
-    alignItems: 'center',
+  icon: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  name: { fontFamily: FONTS.bold, fontSize: 15, color: COLORS.ink },
+  meta: { fontFamily: FONTS.regular, fontSize: 12, lineHeight: 17, color: COLORS.muted },
+  call: {
+    width: 44, height: 44, borderRadius: 12, backgroundColor: COLORS.primary,
+    alignItems: 'center', justifyContent: 'center',
   },
-  callText: { color: COLORS.primaryDark, fontWeight: '600', fontSize: 13 },
-  noPhone: { fontSize: 12, color: COLORS.muted, fontStyle: 'italic' },
-  emptyWrap: { flexGrow: 1, justifyContent: 'center' },
-  empty: { textAlign: 'center', color: COLORS.slate },
-  source: { fontSize: 11, color: COLORS.muted, paddingTop: 8 },
 });
