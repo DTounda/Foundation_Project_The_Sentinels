@@ -3,6 +3,7 @@ import { ScrollView, Text, TextInput, Pressable, StyleSheet } from 'react-native
 import { login } from '../services/api';
 import { ROUTES } from '../navigation/routes';
 import { COLORS } from '../constants/colors';
+import { LoadingIndicator, ErrorMessage } from '../components/LoadingAndError';
 
 // Email and password only. Creating an account is its own screen.
 export default function LoginScreen({ navigation, route }) {
@@ -12,10 +13,12 @@ export default function LoginScreen({ navigation, route }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [retryable, setRetryable] = useState(false);
 
   async function submit() {
     setError('');
     if (!email.trim() || !password) {
+      setRetryable(false);
       setError('Please enter your email and password.');
       return;
     }
@@ -24,6 +27,7 @@ export default function LoginScreen({ navigation, route }) {
       await login(email.trim(), password);
       navigation.replace(ROUTES.TABS, { screen: redirectTo });
     } catch (e) {
+      setRetryable(!e?.status || e.status >= 500);
       setError(e?.message || 'Could not log you in.');
     } finally {
       setBusy(false);
@@ -39,7 +43,8 @@ export default function LoginScreen({ navigation, route }) {
     >
       <Text style={styles.title}>Log in</Text>
 
-      {!!error && <Text style={styles.error}>{error}</Text>}
+      {busy && <LoadingIndicator text="Logging in..." />}
+      {!!error && <ErrorMessage message={error} onRetry={retryable ? submit : undefined} />}
 
       <TextInput
         style={styles.input}

@@ -6,11 +6,11 @@ Every medicine result carries `status` and a `disclaimer`. MediCheck **gives inf
 
 ## Result statuses
 
-| `status`      | Meaning                                                                 | Shown to the user                                                                                |
-| ------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `verified`    | Barcode matches a registered record with `verified_status = 'verified'` | Verified                                                                                         |
-| `unconfirmed` | Record exists but is `unverified` or `flagged`                          | We could not confirm this product is authentic. Please check with your pharmacist and report it. |
-| `not_found`   | No record for this barcode                                              | Not found in our records. Ask your pharmacist.                                                   |
+| `status`      | Meaning                                                                 | Shown to the user                                                                                     |
+| ------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `verified`    | Barcode matches a registered record with `verified_status = 'verified'` | Registered                                                                                            |
+| `unconfirmed` | Record exists but is `unverified` or `flagged`                          | We could not confirm this product is FDA-registered. Please check with your pharmacist and report it. |
+| `not_found`   | No record for this barcode                                              | Not found in our records. Ask your pharmacist.                                                        |
 
 ## Errors
 
@@ -57,7 +57,7 @@ If a valid token is sent, the response also contains the user's allergy alerts. 
 ```json
 {
   "status": "verified",
-  "message": "Verified: this product matches a registered, authentic record.",
+  "message": "Registered: this product is on the Rwanda FDA list of authorised medicines. Check the pack with your pharmacist if anything looks unusual.",
   "medicine": {
     "id": 1,
     "name": "Paracetamol 500 mg tablets",
