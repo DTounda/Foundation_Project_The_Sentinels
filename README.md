@@ -7,7 +7,6 @@ MediCheck is a mobile app for people in Kigali, Rwanda. You search for a medicin
 **Live API:** https://medicheck-api-x1pd.onrender.com/api/v1/health
 The API runs on Render's free tier. After 15 minutes without use it goes to sleep, and the first request takes about 30 to 50 seconds to wake it.
 
-**Android app (APK):** _add the EAS build link here_
 
 ## Features
 
@@ -38,7 +37,6 @@ backend/           Express API (src/), tests (tests/), data import scripts (scri
 mobile/            Expo app: screens, navigation, API client (src/)
 docs/API.md        API contract: every endpoint, request and response
 docs/              Proposal, diagrams, FDA data assessment
-postman/           Postman collection
 .github/workflows/ CI: backend lint and tests
 ```
 
@@ -76,7 +74,7 @@ npm install
 npx expo start
 ```
 
-Scan the QR code with Expo Go. The app uses the live API by default. To use a local API, change `API_BASE_URL` in `mobile/src/config.js` to `http://<your laptop's Wi-Fi IP>:3000/api/v1`. The phone and the laptop must be on the same Wi-Fi.
+Scan the QR code with Expo Go. The app uses the live API by default. To use a local API, set `API_BASE_URL` in `mobile/src/config.js` to your laptop's Wi-Fi IP address, for example `http://192.168.1.20:3000/api/v1`. The phone and the laptop must be on the same Wi-Fi.
 
 ### Build the Android APK
 
@@ -97,7 +95,7 @@ npm test
 npm run lint
 ```
 
-There are 148 backend tests (unit and integration). They use in-memory repositories, so they need no database.
+There are 151 backend tests (unit and integration). They use in-memory repositories, so they need no database.
 
 ## Data sources
 

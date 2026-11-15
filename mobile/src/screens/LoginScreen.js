@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { ScrollView, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import { ScrollView, Text, Pressable, StyleSheet } from 'react-native';
 import { login } from '../services/api';
 import { ROUTES } from '../navigation/routes';
-import { COLORS } from '../constants/colors';
-import { LoadingIndicator, ErrorMessage } from '../components/LoadingAndError';
+import { Screen, Title, Body, Button, Field, Logo } from '../components/ui';
+import { ErrorMessage } from '../components/LoadingAndError';
+import { COLORS, FONTS } from '../constants/theme';
 
 // Email and password only. Creating an account is its own screen.
 export default function LoginScreen({ navigation, route }) {
@@ -35,75 +36,50 @@ export default function LoginScreen({ navigation, route }) {
   }
 
   return (
-    // Scrolls so the keyboard never hides the fields or the button on small phones.
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Text style={styles.title}>Log in</Text>
+    <Screen>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Logo size={52} />
+        <Title size={28}>Welcome back</Title>
+        <Body>Log in to see your allergies and medicines on every check.</Body>
 
-      {busy && <LoadingIndicator text="Logging in..." />}
-      {!!error && <ErrorMessage message={error} onRetry={retryable ? submit : undefined} />}
+        {!!error && <ErrorMessage message={error} onRetry={retryable ? submit : undefined} />}
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        onSubmitEditing={submit}
-      />
+        <Field
+          label="Email"
+          placeholder="you@example.com"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
+        <Field
+          label="Password"
+          placeholder="Your password"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          onSubmitEditing={submit}
+        />
 
-      <Pressable
-        style={[styles.button, busy && styles.buttonBusy]}
-        onPress={submit}
-        disabled={busy}
-        accessibilityRole="button"
-      >
-        <Text style={styles.buttonText}>{busy ? 'Please wait...' : 'Log in'}</Text>
-      </Pressable>
+        <Button title={busy ? 'Logging in...' : 'Log in'} busy={busy} onPress={submit} />
 
-      <Pressable
-        onPress={() => navigation.navigate(ROUTES.SIGN_UP, { redirectTo })}
-        accessibilityRole="button"
-      >
-        <Text style={styles.link}>New here? Create an account</Text>
-      </Pressable>
-    </ScrollView>
+        <Pressable
+          onPress={() => navigation.navigate(ROUTES.SIGN_UP, { redirectTo })}
+          accessibilityRole="button"
+          style={styles.link}
+        >
+          <Text style={styles.linkText}>
+            New here? <Text style={styles.linkStrong}>Create an account</Text>
+          </Text>
+        </Pressable>
+      </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.white },
-  container: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  title: { fontSize: 23, fontWeight: '700', color: COLORS.ink, marginBottom: 20 },
-  input: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 9,
-    padding: 11,
-    marginBottom: 10,
-    fontSize: 14,
-    color: COLORS.ink,
-  },
-  button: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 9,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  buttonBusy: { opacity: 0.7 },
-  buttonText: { color: COLORS.white, fontWeight: '600', fontSize: 14 },
-  link: { marginTop: 16, textAlign: 'center', color: COLORS.primary, fontSize: 13 },
-  error: { color: COLORS.danger, marginBottom: 10, fontSize: 13 },
+  content: { flexGrow: 1, justifyContent: 'center', padding: 24, gap: 18 },
+  link: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  linkText: { fontFamily: FONTS.regular, fontSize: 15, color: COLORS.slate },
+  linkStrong: { fontFamily: FONTS.semibold, color: COLORS.primary },
 });

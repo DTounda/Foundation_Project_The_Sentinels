@@ -1,37 +1,54 @@
-import { useEffect, useState } from 'react';
-import { View, ScrollView, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { getIngredients, getAllergies, addAllergy, deleteAllergy, hasToken } from '../services/api';
-import { COLORS } from '../constants/colors';
+import { ROUTES } from '../navigation/routes';
+import { Screen, Title, Body, Button, Card, Field, Toggle, Chip, SectionTitle, Notice } from '../components/ui';
 import { LoadingIndicator, ErrorMessage } from '../components/LoadingAndError';
+import Icon from '../components/Icon';
+import { COLORS, FONTS } from '../constants/theme';
 
 const SEVERITIES = ['mild', 'moderate', 'severe'];
+
+const SEVERITY_STYLE = {
+  mild: { color: COLORS.primaryDark, background: COLORS.primarySoft },
+  moderate: { color: COLORS.warning, background: COLORS.warningBg },
+  severe: { color: COLORS.danger, background: COLORS.dangerBg },
+};
+
+const cap = (t) => (t ? t[0].toUpperCase() + t.slice(1) : t);
 
 export default function AllergyProfileScreen({ navigation }) {
   const [query, setQuery] = useState('');
   const [ingredients, setIngredients] = useState([]);
   const [allergies, setAllergies] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [severity, setSeverity] = useState('mild');
+  const [severity, setSeverity] = useState('moderate');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [adding, setAdding] = useState(false);
 
   function handleError(e) {
-    if (e.code === 'UNAUTHORIZED') navigation.navigate('Login', { redirectTo: 'AllergyProfile' });
+    if (e.code === 'UNAUTHORIZED') navigation.navigate(ROUTES.LOGIN, { redirectTo: ROUTES.ALLERGY_PROFILE });
     else setError(e.message);
   }
 
   async function loadAllergies() {
     setLoading(true);
     setLoadError('');
-    try { setAllergies(await getAllergies()); }
-    catch (e) { if (e.code === 'UNAUTHORIZED') handleError(e); else setLoadError(e.message || 'Could not load your allergies.'); }
-    finally { setLoading(false); }
+    try {
+      setAllergies(await getAllergies());
+    } catch (e) {
+      if (e.code === 'UNAUTHORIZED') handleError(e);
+      else setLoadError(e.message || 'Could not load your allergies.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
     hasToken().then((ok) => {
-      if (!ok) navigation.navigate('Login', { redirectTo: 'AllergyProfile' });
+      if (!ok) navigation.navigate(ROUTES.LOGIN, { redirectTo: ROUTES.ALLERGY_PROFILE });
       else loadAllergies();
     });
   }, []);
@@ -43,105 +60,110 @@ export default function AllergyProfileScreen({ navigation }) {
   async function onAdd() {
     if (!selected) return setError('Choose an ingredient first.');
     setError('');
+    setAdding(true);
     try {
       await addAllergy(selected.id, severity);
       setSelected(null);
+      setQuery('');
       await loadAllergies();
-    } catch (e) { handleError(e); }
+    } catch (e) {
+      handleError(e);
+    } finally {
+      setAdding(false);
+    }
   }
 
   async function onDelete(id) {
-    try { await deleteAllergy(id); await loadAllergies(); } catch (e) { handleError(e); }
+    try {
+      await deleteAllergy(id);
+      await loadAllergies();
+    } catch (e) {
+      handleError(e);
+    }
   }
 
   return (
-    // One scrolling page, so neither list gets squeezed when the keyboard is open.
-    <ScrollView style={s.screen} contentContainerStyle={s.container} keyboardShouldPersistTaps="handled">
-      <Text style={s.title}>My allergies</Text>
-      {loading && <LoadingIndicator text="Loading your allergies..." />}
-      {!!loadError && <ErrorMessage message={loadError} onRetry={loadAllergies} />}
-      {!!error && <Text style={s.error}>{error}</Text>}
+    <Screen>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={{ gap: 4 }}>
+          <Title size={26}>My allergies</Title>
+          <Body size={14}>We check every medicine against these.</Body>
+        </View>
 
-      <Text style={s.label}>1. Find an ingredient</Text>
-      <TextInput style={s.input} placeholder="e.g. amox" value={query} onChangeText={setQuery} autoCapitalize="none" />
-      {/* Its own small scroll box inside the page; nestedScrollEnabled is needed on Android. */}
-      <ScrollView style={s.pickList} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-        {ingredients.map((item) => (
-          <TouchableOpacity key={String(item.id)} onPress={() => setSelected(item)}
-            style={[s.row, selected?.id === item.id && s.rowSelected]}>
-            <Text style={s.rowText}>{item.name}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <Text style={s.label}>2. Choose severity</Text>
-      <View style={s.chips}>
-        {SEVERITIES.map((v) => (
-          <TouchableOpacity key={v} onPress={() => setSeverity(v)} style={[s.chip, severity === v && s.chipOn]}>
-            <Text style={[s.chipText, severity === v && s.chipTextOn]}>{v}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      <TouchableOpacity style={s.button} onPress={onAdd}>
-        <Text style={s.buttonText}>Add allergy</Text>
-      </TouchableOpacity>
-
-      <Text style={s.label}>Saved allergies</Text>
-      {allergies.length === 0 ? (
-        <Text style={s.empty}>No allergies saved yet.</Text>
-      ) : (
-        allergies.map((item) => (
-          <View key={String(item.id)} style={s.row}>
-            <Text style={s.rowTextFlex}>{item.ingredient} ({item.severity})</Text>
-            <TouchableOpacity onPress={() => onDelete(item.id)}>
-              <Text style={s.delete}>Delete</Text>
-            </TouchableOpacity>
+        <Card style={{ padding: 16 }}>
+          <SectionTitle>Add an allergy</SectionTitle>
+          <Field icon="search" placeholder="Find an ingredient, e.g. amox" autoCapitalize="none" value={query} onChangeText={setQuery} />
+          <View style={styles.wrap}>
+            {ingredients.slice(0, 8).map((item) => (
+              <Toggle key={item.id} label={item.name} on={selected?.id === item.id} onPress={() => setSelected(item)} />
+            ))}
           </View>
-        ))
-      )}
-    </ScrollView>
+          <Text style={styles.label}>How bad is it?</Text>
+          <View style={styles.segment} accessibilityRole="radiogroup">
+            {SEVERITIES.map((sev) => {
+              const on = severity === sev;
+              return (
+                <Pressable
+                  key={sev}
+                  onPress={() => setSeverity(sev)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: on }}
+                  style={[styles.segBtn, on && styles.segBtnOn]}
+                >
+                  <Text style={[styles.segText, on && styles.segTextOn]}>{cap(sev)}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {!!error && <Notice text={error} tone="error" />}
+          <Button title={adding ? 'Adding...' : 'Add allergy'} busy={adding} onPress={onAdd} />
+        </Card>
+
+        <SectionTitle>Saved</SectionTitle>
+        {loading && <LoadingIndicator text="Loading your allergies..." />}
+        {!!loadError && <ErrorMessage message={loadError} onRetry={loadAllergies} />}
+        {!loading && !loadError && allergies.length === 0 && (
+          <Body size={14} color={COLORS.muted}>No allergies saved yet.</Body>
+        )}
+        {allergies.map((item) => {
+          const st = SEVERITY_STYLE[item.severity] || SEVERITY_STYLE.mild;
+          return (
+            <View key={String(item.id)} style={styles.saved}>
+              <View style={[styles.savedIcon, { backgroundColor: st.background }]}>
+                <Icon name="allergy" size={20} color={st.color} />
+              </View>
+              <Text style={styles.savedName}>{item.ingredient}</Text>
+              <Chip label={cap(item.severity)} color={st.color} background={st.background} />
+              <Pressable
+                onPress={() => onDelete(item.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${item.ingredient}`}
+                style={styles.remove}
+              >
+                <Icon name="trash" size={20} color={COLORS.muted} />
+              </Pressable>
+            </View>
+          );
+        })}
+      </ScrollView>
+    </Screen>
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.white },
-  container: { padding: 20, paddingBottom: 32 },
-  title: { fontSize: 21, fontWeight: '700', color: COLORS.ink, marginBottom: 8 },
-  label: { fontWeight: '600', fontSize: 13, color: COLORS.ink, marginTop: 14, marginBottom: 6 },
-  input: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 9,
-    padding: 10,
-    marginBottom: 8,
-    fontSize: 14,
-    color: COLORS.ink,
+const styles = StyleSheet.create({
+  content: { padding: 20, paddingTop: 12, gap: 14 },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  label: { fontFamily: FONTS.semibold, fontSize: 13, color: COLORS.slate },
+  segment: { flexDirection: 'row', gap: 4, padding: 4, borderRadius: 12, backgroundColor: COLORS.neutralBg },
+  segBtn: { flex: 1, minHeight: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  segBtnOn: { backgroundColor: COLORS.white },
+  segText: { fontFamily: FONTS.semibold, fontSize: 14, color: COLORS.muted },
+  segTextOn: { color: COLORS.ink },
+  saved: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12,
+    backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.border, borderRadius: 16,
   },
-  pickList: { maxHeight: 140, borderWidth: 1, borderColor: COLORS.border, borderRadius: 9 },
-  row: { flexDirection: 'row', padding: 10, borderBottomWidth: 1, borderColor: COLORS.border },
-  rowSelected: { backgroundColor: COLORS.primaryLight },
-  rowText: { fontSize: 14, color: COLORS.ink },
-  rowTextFlex: { flex: 1, fontSize: 14, color: COLORS.ink },
-  chips: { flexDirection: 'row', gap: 8 },
-  chip: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 999,
-    paddingVertical: 5,
-    paddingHorizontal: 13,
-  },
-  chipOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { color: COLORS.slate, fontSize: 12 },
-  chipTextOn: { color: COLORS.white, fontWeight: '600' },
-  button: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 12,
-    borderRadius: 9,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  buttonText: { color: COLORS.white, fontWeight: '600', fontSize: 14 },
-  delete: { color: COLORS.danger, fontWeight: '600', fontSize: 13 },
-  empty: { color: COLORS.muted, fontStyle: 'italic', fontSize: 13 },
-  error: { color: COLORS.danger, fontSize: 13 },
+  savedIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  savedName: { flex: 1, fontFamily: FONTS.semibold, fontSize: 15, color: COLORS.ink },
+  remove: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 });

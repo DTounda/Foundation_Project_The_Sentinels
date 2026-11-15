@@ -1,14 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  ScrollView,
-  Text,
-  TextInput,
-  Pressable,
-  ActivityIndicator,
-  StyleSheet,
-} from 'react-native';
-import { hasToken, logout, getStoredUser } from '../services/api';
+import { View, ScrollView, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { hasToken, logout, getStoredUser, deleteAccount } from '../services/api';
 import {
   loadContacts,
   storeDoctor,
@@ -18,7 +10,9 @@ import {
   removeMedication,
 } from '../services/profileStore';
 import { ROUTES } from '../navigation/routes';
-import { COLORS } from '../constants/colors';
+import { Screen, Title, Body, Button, Card, Field, Chip, SectionTitle, Notice } from '../components/ui';
+import Icon from '../components/Icon';
+import { COLORS, FONTS } from '../constants/theme';
 
 function initials(name) {
   return (name || '')
@@ -30,28 +24,31 @@ function initials(name) {
 }
 
 // A row that opens into a small form, instead of showing it always.
-function Disclosure({ title, summary, open, onToggle, children }) {
+function Disclosure({ icon, title, summary, open, onToggle, children, first }) {
   return (
-    <View style={styles.disclosure}>
-      <Pressable style={styles.disclosureHead} onPress={onToggle} accessibilityRole="button">
-        <View>
-          <Text style={styles.disclosureTitle}>{title}</Text>
-          <Text style={styles.disclosureSummary}>{summary}</Text>
+    <View style={!first && styles.divider}>
+      <Pressable style={styles.discHead} onPress={onToggle} accessibilityRole="button" accessibilityState={{ expanded: open }}>
+        <Icon name={icon} size={22} color={COLORS.primary} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={styles.rowLabel}>{title}</Text>
+          <Text style={styles.rowValue}>{summary}</Text>
         </View>
-        <Text style={styles.chevron}>{open ? '▾' : '▸'}</Text>
+        <Icon name="chevron" size={20} color={COLORS.muted} />
       </Pressable>
-      {open && <View style={styles.disclosureBody}>{children}</View>}
+      {open && <View style={styles.discBody}>{children}</View>}
     </View>
   );
 }
 
-// Who to call, and what the person already takes.
+// Who to call, what the person already takes, and the account itself.
 export default function ProfileScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [localOnly, setLocalOnly] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
   const [open, setOpen] = useState(null); // 'doctor' | 'pharmacy' | null
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [account, setAccount] = useState(null);
   const [doctor, setDoctor] = useState({ name: '', phone: '', email: '' });
@@ -71,10 +68,11 @@ export default function ProfileScreen({ navigation }) {
   async function refresh() {
     setError('');
     try {
+      // Show the saved account at once, then load the rest in parallel.
       const user = await getStoredUser();
-      const contacts = await loadContacts();
-      const meds = await loadMedications();
       setAccount(user);
+      setLoading(false);
+      const [contacts, meds] = await Promise.all([loadContacts(), loadMedications()]);
       setDoctor({
         name: contacts.data.doctor?.name || '',
         phone: contacts.data.doctor?.phone || '',
@@ -122,11 +120,7 @@ export default function ProfileScreen({ navigation }) {
       return;
     }
     try {
-      const res = await storeDoctor({
-        name: doctor.name.trim(),
-        phone: doctor.phone.trim(),
-        email: doctor.email.trim(),
-      });
+      const res = await storeDoctor({ name: doctor.name.trim(), phone: doctor.phone.trim(), email: doctor.email.trim() });
       setLocalOnly(res.local);
       setSaved('Doctor saved.');
       setOpen(null);
@@ -143,10 +137,7 @@ export default function ProfileScreen({ navigation }) {
       return;
     }
     try {
-      const res = await storePharmacy({
-        name: pharmacy.name.trim(),
-        phone: pharmacy.phone.trim(),
-      });
+      const res = await storePharmacy({ name: pharmacy.name.trim(), phone: pharmacy.phone.trim() });
       setLocalOnly(res.local);
       setSaved('Pharmacy saved.');
       setOpen(null);
@@ -181,206 +172,182 @@ export default function ProfileScreen({ navigation }) {
     }
   }
 
-  // Clears the session and the local profile cache, then goes straight to
-  // Login (not Home) and resets the stack so Back can't return to Profile.
+  // Clears the session and local cache, then resets so Back can't return here.
   async function onLogout() {
     await logout();
     navigation.reset({ index: 0, routes: [{ name: ROUTES.LOGIN }] });
   }
 
+  async function onDeleteAccount() {
+    setError('');
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      await logout();
+      navigation.reset({ index: 0, routes: [{ name: ROUTES.WELCOME }] });
+    } catch (e) {
+      setDeleting(false);
+      setError(
+        e?.status === 404
+          ? 'Deleting accounts is not available yet. Please try again later.'
+          : e?.message || 'Could not delete your account.',
+      );
+    }
+  }
+
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
+      <Screen>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
+      </Screen>
     );
   }
 
-  const doctorSummary = doctor.name ? `${doctor.name} · ${doctor.phone}` : 'Not added yet';
-  const pharmacySummary = pharmacy.name ? `${pharmacy.name} · ${pharmacy.phone}` : 'Not added yet';
+  const doctorSummary = doctor.name ? `${doctor.name} · ${doctor.phone}` : 'Add your doctor';
+  const pharmacySummary = pharmacy.name ? `${pharmacy.name} · ${pharmacy.phone}` : 'Add your pharmacy';
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials(account?.fullName)}</Text>
-        </View>
-        <View style={styles.headerInfo}>
-          <Text style={styles.name}>{account?.fullName || 'Your account'}</Text>
-          {!!account?.email && <Text style={styles.headerLine}>{account.email}</Text>}
-          {!!account?.phone && <Text style={styles.headerLine}>{account.phone}</Text>}
-        </View>
-      </View>
-
-      {localOnly ? (
-        <Text style={styles.notice}>
-          Doctor, pharmacy and medicines are saved on this phone for now.
-        </Text>
-      ) : null}
-
-      {!!error && <Text style={styles.error}>{error}</Text>}
-      {!!saved && <Text style={styles.saved}>{saved}</Text>}
-
-      <Disclosure
-        title="My doctor"
-        summary={doctorSummary}
-        open={open === 'doctor'}
-        onToggle={() => setOpen(open === 'doctor' ? null : 'doctor')}
-      >
-        <TextInput
-          style={styles.input}
-          placeholder="Doctor's name"
-          value={doctor.name}
-          onChangeText={(v) => setDoctor({ ...doctor, name: v })}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Phone number"
-          keyboardType="phone-pad"
-          value={doctor.phone}
-          onChangeText={(v) => setDoctor({ ...doctor, phone: v })}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Email (optional)"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={doctor.email}
-          onChangeText={(v) => setDoctor({ ...doctor, email: v })}
-        />
-        <Pressable style={styles.saveButton} onPress={onSaveDoctor} accessibilityRole="button">
-          <Text style={styles.saveButtonText}>Save</Text>
-        </Pressable>
-      </Disclosure>
-
-      <Disclosure
-        title="My pharmacy"
-        summary={pharmacySummary}
-        open={open === 'pharmacy'}
-        onToggle={() => setOpen(open === 'pharmacy' ? null : 'pharmacy')}
-      >
-        <TextInput
-          style={styles.input}
-          placeholder="Pharmacy name"
-          value={pharmacy.name}
-          onChangeText={(v) => setPharmacy({ ...pharmacy, name: v })}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Phone number"
-          keyboardType="phone-pad"
-          value={pharmacy.phone}
-          onChangeText={(v) => setPharmacy({ ...pharmacy, phone: v })}
-        />
-        <Pressable style={styles.saveButton} onPress={onSavePharmacy} accessibilityRole="button">
-          <Text style={styles.saveButtonText}>Save</Text>
-        </Pressable>
-      </Disclosure>
-
-      <Text style={styles.sectionTitle}>Medicines I take now</Text>
-      <View style={styles.addRow}>
-        <TextInput
-          style={[styles.input, styles.addInput]}
-          placeholder="e.g. Metformin"
-          value={newMedication}
-          onChangeText={setNewMedication}
-          onSubmitEditing={onAddMedication}
-        />
-        <Pressable style={styles.addButton} onPress={onAddMedication} accessibilityRole="button">
-          <Text style={styles.addButtonText}>Add</Text>
-        </Pressable>
-      </View>
-
-      {medications.length === 0 ? (
-        <Text style={styles.empty}>Nothing added yet.</Text>
-      ) : (
-        medications.map((m) => (
-          <View key={String(m.id)} style={styles.medRow}>
-            <Text style={styles.medName}>{m.name}</Text>
-            <Pressable onPress={() => onRemoveMedication(m.id)} accessibilityRole="button">
-              <Text style={styles.remove}>Remove</Text>
-            </Pressable>
+    <Screen>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.header}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials(account?.fullName)}</Text>
           </View>
-        ))
-      )}
+          <View style={{ flex: 1, gap: 2 }}>
+            <Title size={22}>{account?.fullName || 'Your account'}</Title>
+            {!!account?.email && <Body size={14} color={COLORS.muted}>{account.email}</Body>}
+            {!!account?.phone && <Body size={14} color={COLORS.muted}>{account.phone}</Body>}
+          </View>
+        </View>
 
-      <Pressable onPress={onLogout} accessibilityRole="button">
-        <Text style={styles.logout}>Log out</Text>
-      </Pressable>
-    </ScrollView>
+        {localOnly ? <Notice text="Some of your details are saved on this phone only for now." tone="warn" /> : null}
+        {!!error && <Notice text={error} tone="error" />}
+        {!!saved && <Notice text={saved} tone="success" />}
+
+        <Card style={{ gap: 0, paddingVertical: 8 }}>
+          <SectionTitle style={{ marginVertical: 6 }}>My care team</SectionTitle>
+          <Disclosure
+            first
+            icon="doctor"
+            title="My doctor"
+            summary={doctorSummary}
+            open={open === 'doctor'}
+            onToggle={() => setOpen(open === 'doctor' ? null : 'doctor')}
+          >
+            <Field label="Doctor's name" value={doctor.name} onChangeText={(v) => setDoctor({ ...doctor, name: v })} />
+            <Field label="Phone number" keyboardType="phone-pad" value={doctor.phone} onChangeText={(v) => setDoctor({ ...doctor, phone: v })} />
+            <Field
+              label="Email (optional)"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={doctor.email}
+              onChangeText={(v) => setDoctor({ ...doctor, email: v })}
+            />
+            <Button title="Save" onPress={onSaveDoctor} />
+          </Disclosure>
+          <Disclosure
+            icon="store"
+            title="My pharmacy"
+            summary={pharmacySummary}
+            open={open === 'pharmacy'}
+            onToggle={() => setOpen(open === 'pharmacy' ? null : 'pharmacy')}
+          >
+            <Field label="Pharmacy name" value={pharmacy.name} onChangeText={(v) => setPharmacy({ ...pharmacy, name: v })} />
+            <Field label="Phone number" keyboardType="phone-pad" value={pharmacy.phone} onChangeText={(v) => setPharmacy({ ...pharmacy, phone: v })} />
+            <Button title="Save" onPress={onSavePharmacy} />
+          </Disclosure>
+        </Card>
+
+        <Card style={{ padding: 16 }}>
+          <SectionTitle>Medicines I take</SectionTitle>
+          <View style={styles.addRow}>
+            <Field
+              placeholder="e.g. Metformin"
+              value={newMedication}
+              onChangeText={setNewMedication}
+              onSubmitEditing={onAddMedication}
+              style={{ flex: 1 }}
+            />
+            <Button title="Add" onPress={onAddMedication} style={{ paddingHorizontal: 18 }} />
+          </View>
+          {medications.length === 0 ? (
+            <Body size={14} color={COLORS.muted}>Nothing added yet.</Body>
+          ) : (
+            <View style={styles.wrap}>
+              {medications.map((m) => (
+                <Pressable
+                  key={String(m.id)}
+                  onPress={() => onRemoveMedication(m.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove ${m.name}`}
+                  style={styles.medChip}
+                >
+                  <Icon name="pill" size={14} color={COLORS.primaryDark} />
+                  <Text style={styles.medText}>{m.name}</Text>
+                  <Icon name="x" size={14} color={COLORS.primaryDark} />
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </Card>
+
+        <Card style={{ gap: 0, paddingVertical: 4 }}>
+          <Pressable onPress={onLogout} accessibilityRole="button" style={styles.discHead}>
+            <Icon name="logout" size={22} color={COLORS.primary} />
+            <Text style={[styles.rowValue, { flex: 1 }]}>Log out</Text>
+            <Icon name="chevron" size={20} color={COLORS.muted} />
+          </Pressable>
+          <Pressable
+            onPress={() => setConfirmDelete(true)}
+            accessibilityRole="button"
+            style={[styles.discHead, styles.divider]}
+          >
+            <Icon name="trash" size={22} color={COLORS.danger} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={[styles.rowValue, { color: COLORS.danger }]}>Delete my account</Text>
+              <Text style={styles.rowLabel}>Permanently removes your data</Text>
+            </View>
+            <Icon name="chevron" size={20} color={COLORS.muted} />
+          </Pressable>
+          {confirmDelete && (
+            <View style={styles.confirm}>
+              <Body size={14} color={COLORS.ink}>
+                This deletes your account, allergies, medicines, doctor and pharmacy. It cannot be undone.
+              </Body>
+              <View style={styles.addRow}>
+                <Button title="Cancel" kind="ghost" onPress={() => setConfirmDelete(false)} style={{ flex: 1 }} />
+                <Button title="Delete" kind="danger" busy={deleting} onPress={onDeleteAccount} style={{ flex: 1 }} />
+              </View>
+            </View>
+          )}
+        </Card>
+      </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.white },
-  content: { padding: 20, paddingBottom: 40 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 18 },
+  content: { padding: 20, paddingTop: 12, gap: 14 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: COLORS.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 64, height: 64, borderRadius: 32, backgroundColor: COLORS.primaryDark,
+    alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { color: COLORS.primaryDark, fontSize: 18, fontWeight: '700' },
-  headerInfo: { flex: 1 },
-  name: { fontSize: 19, fontWeight: '700', color: COLORS.ink },
-  headerLine: { fontSize: 13, color: COLORS.slate, marginTop: 1 },
-  notice: { fontSize: 12, color: COLORS.muted, marginBottom: 14 },
-  error: { color: COLORS.danger, marginBottom: 10, fontSize: 13 },
-  saved: { color: COLORS.success, marginBottom: 10, fontSize: 13 },
-
-  disclosure: {
-    borderBottomWidth: 1,
-    borderColor: COLORS.border,
-    paddingVertical: 12,
+  avatarText: { fontFamily: FONTS.display, fontSize: 22, color: COLORS.white },
+  divider: { borderTopWidth: 1, borderTopColor: COLORS.border },
+  discHead: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, minHeight: 52 },
+  discBody: { gap: 12, paddingBottom: 14 },
+  rowLabel: { fontFamily: FONTS.regular, fontSize: 13, color: COLORS.muted },
+  rowValue: { fontFamily: FONTS.semibold, fontSize: 15, color: COLORS.ink },
+  addRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-end' },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  medChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, minHeight: 36,
+    borderRadius: 999, backgroundColor: COLORS.primarySoft,
   },
-  disclosureHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  disclosureTitle: { fontSize: 15, fontWeight: '600', color: COLORS.ink },
-  disclosureSummary: { fontSize: 12, color: COLORS.muted, marginTop: 2 },
-  chevron: { fontSize: 14, color: COLORS.muted },
-  disclosureBody: { marginTop: 12, gap: 8 },
-
-  input: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 9,
-    padding: 10,
-    fontSize: 14,
-    color: COLORS.ink,
-  },
-  saveButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 9,
-    paddingVertical: 10,
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 20,
-  },
-  saveButtonText: { color: COLORS.white, fontWeight: '600', fontSize: 13 },
-
-  sectionTitle: { fontSize: 15, fontWeight: '600', color: COLORS.ink, marginTop: 20, marginBottom: 8 },
-  addRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-  addInput: { flex: 1 },
-  addButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 9,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  addButtonText: { color: COLORS.white, fontWeight: '600', fontSize: 13 },
-  medRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderColor: COLORS.border,
-    paddingVertical: 10,
-  },
-  medName: { fontSize: 14, color: COLORS.slate, flex: 1 },
-  remove: { color: COLORS.danger, fontSize: 13, fontWeight: '600' },
-  empty: { color: COLORS.muted, fontStyle: 'italic', fontSize: 13 },
-  logout: { marginTop: 28, color: COLORS.danger, fontWeight: '600', textAlign: 'center', fontSize: 14 },
+  medText: { fontFamily: FONTS.semibold, fontSize: 14, color: COLORS.primaryDark },
+  confirm: { gap: 12, padding: 14, marginBottom: 12, borderRadius: 14, backgroundColor: COLORS.dangerBg },
 });

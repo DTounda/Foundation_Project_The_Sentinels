@@ -1,13 +1,14 @@
 import React from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import Icon from './Icon';
+import { COLORS, FONTS } from '../constants/theme';
 
 // Shared loading and error pieces for every screen that calls the API.
-// Colours follow the MediCheck style guide (blue 1565C0, light blue box, no red).
 
 export function LoadingIndicator({ text = 'Loading...' }) {
   return (
     <View style={styles.loading} accessibilityLiveRegion="polite">
-      <ActivityIndicator size="large" color="#1565C0" />
+      <ActivityIndicator size="large" color={COLORS.primary} />
       <Text style={styles.loadingText}>{text}</Text>
     </View>
   );
@@ -17,7 +18,10 @@ export function ErrorMessage({ message, onRetry }) {
   if (!message) return null;
   return (
     <View style={styles.errorBox} accessibilityLiveRegion="polite">
-      <Text style={styles.errorText}>{message}</Text>
+      <View style={styles.errorRow}>
+        <Icon name="info" size={18} color={COLORS.primaryDark} />
+        <Text style={styles.errorText}>{message}</Text>
+      </View>
       {onRetry ? (
         <Pressable style={styles.retryButton} accessibilityRole="button" onPress={onRetry}>
           <Text style={styles.retryText}>Try again</Text>
@@ -28,16 +32,11 @@ export function ErrorMessage({ message, onRetry }) {
 }
 
 const styles = StyleSheet.create({
-  loading: { alignItems: 'center', padding: 16 },
-  loadingText: { marginTop: 8, fontSize: 14, color: '#212121' },
-  errorBox: { backgroundColor: '#E3F2FD', borderRadius: 8, padding: 14, marginTop: 8 },
-  errorText: { color: '#212121', fontSize: 15, textAlign: 'center' },
-  retryButton: {
-    backgroundColor: '#1565C0',
-    borderRadius: 8,
-    padding: 10,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  retryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  loading: { alignItems: 'center', padding: 16, gap: 8 },
+  loadingText: { fontFamily: FONTS.medium, fontSize: 14, color: COLORS.slate },
+  errorBox: { backgroundColor: COLORS.primarySoft, borderRadius: 14, padding: 14, gap: 10 },
+  errorRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  errorText: { flex: 1, fontFamily: FONTS.regular, color: COLORS.primaryDark, fontSize: 14, lineHeight: 20 },
+  retryButton: { backgroundColor: COLORS.primary, borderRadius: 10, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  retryText: { fontFamily: FONTS.semibold, color: COLORS.white, fontSize: 15 },
 });

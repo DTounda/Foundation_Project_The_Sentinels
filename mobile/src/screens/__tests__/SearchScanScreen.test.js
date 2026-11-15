@@ -1,23 +1,38 @@
 import React from 'react';
-import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, screen } from '@testing-library/react-native';
 import SearchScanScreen from '../SearchScanScreen';
-import { searchMedicines } from '../../services/api';
 
-jest.mock('../../services/api', () => ({ searchMedicines: jest.fn() }));
+jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
+jest.mock('@react-navigation/native', () => ({ useFocusEffect: jest.fn() }));
+jest.mock('../../services/api', () => ({
+  getStoredUser: jest.fn().mockResolvedValue(null),
+  getAllergies: jest.fn().mockResolvedValue([]),
+  hasToken: jest.fn().mockResolvedValue(false),
+}));
+jest.mock('../../services/profileStore', () => ({ loadMedications: jest.fn() }));
 
 test('asks for at least 2 characters before searching', async () => {
-  await render(<SearchScanScreen navigation={{ navigate: jest.fn() }} />);
-  await fireEvent.press(screen.getByText('Search'));
+  const navigate = jest.fn();
+  await render(<SearchScanScreen navigation={{ navigate }} />);
+  const input = screen.getByPlaceholderText('Or search by name, e.g. ibuprofen');
+  await fireEvent.changeText(input, 'p');
+  await fireEvent(input, 'submitEditing');
   expect(screen.getByText('Please type at least 2 characters.')).toBeTruthy();
-  expect(searchMedicines).not.toHaveBeenCalled();
+  expect(navigate).not.toHaveBeenCalled();
 });
 
-test('goes straight to Result when exactly one medicine matches', async () => {
+test('opens the search results with what was typed', async () => {
   const navigate = jest.fn();
-  const one = { status: 'verified', message: 'ok', medicine: { id: 1, name: 'Paracetamol' }, allergyAlerts: [] };
-  searchMedicines.mockResolvedValue([one]);
   await render(<SearchScanScreen navigation={{ navigate }} />);
-  await fireEvent.changeText(screen.getByPlaceholderText('Search medicine by name'), 'parac');
-  await fireEvent.press(screen.getByText('Search'));
-  await waitFor(() => expect(navigate).toHaveBeenCalledWith('Result', { result: one }));
+  const input = screen.getByPlaceholderText('Or search by name, e.g. ibuprofen');
+  await fireEvent.changeText(input, ' parac ');
+  await fireEvent(input, 'submitEditing');
+  expect(navigate).toHaveBeenCalledWith('SearchResults', { query: 'parac' });
+});
+
+test('the photo button opens photo verification', async () => {
+  const navigate = jest.fn();
+  await render(<SearchScanScreen navigation={{ navigate }} />);
+  await fireEvent.press(screen.getByText('Take a photo of the box'));
+  expect(navigate).toHaveBeenCalledWith('PhotoVerify');
 });
