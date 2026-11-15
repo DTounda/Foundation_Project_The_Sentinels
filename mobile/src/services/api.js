@@ -11,27 +11,11 @@ async function request(path, { method = 'GET', body, auth = false, guest = false
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-    const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 60000); // Render can take 30-50s to wake up
-  let res;
-  try {
-    res = await fetch(`${API_BASE_URL}${path}`, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-      signal: controller.signal,
-    });
-  } catch (e) {
-    const err = new Error(
-      e.name === 'AbortError'
-        ? 'The server is taking too long. It may be waking up, so try again in a minute.'
-        : 'Cannot reach the server. Check your internet connection.'
-    );
-    err.code = 'NETWORK';
-    throw err;
-  } finally {
-    clearTimeout(timer);
-  }
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
 
   // An expired or invalid token makes the API answer 401, even on public routes.
   if (res.status === 401 && token) {
@@ -185,8 +169,3 @@ export async function checkInteractions(medicineId) {
     return [];
   }
 }
-
-export const verifyByBarcode = (barcode) =>
-  request('/verify/barcode', { method: 'POST', body: { barcode } });
-
-export const getMedicineDetails = (id) => request(`/medicines/${id}`);
