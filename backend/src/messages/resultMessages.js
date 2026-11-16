@@ -18,7 +18,7 @@ const RESULT_MESSAGES = {
   verified:
     'Registered: this product is on the Rwanda FDA list of authorised medicines. Check the pack with your pharmacist if anything looks unusual.',
   unconfirmed:
-    'We could not confirm this product is authentic. Please check with your pharmacist and report it.',
+    'We could not confirm this product is FDA-registered. Please check with your pharmacist and report it.',
   not_found: 'Not found in our records. Ask your pharmacist.',
 };
 

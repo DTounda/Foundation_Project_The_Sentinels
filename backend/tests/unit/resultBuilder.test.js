@@ -46,6 +46,15 @@ describe('buildResult', () => {
     );
   });
 
+  it('uses the approved FDA-registration wording for unconfirmed products', () => {
+    const message = buildResult({ ...base, verifiedStatus: 'unverified' }).message;
+
+    expect(message).toBe(
+      'We could not confirm this product is FDA-registered. Please check with your pharmacist and report it.',
+    );
+    expect(message).not.toMatch(/authentic/i);
+  });
+
   it('does not leak the internal verifiedStatus field', () => {
     const { medicine } = buildResult({ ...base, verifiedStatus: 'verified' });
     expect(medicine).not.toHaveProperty('verifiedStatus');
