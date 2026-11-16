@@ -21,6 +21,44 @@ function createMongoVerificationLogRepository(db) {
       return id;
     },
 
+    /** List this user's scan history, excluding medicine-search result logs. */
+    async listByUser(userId) {
+      const entries = await verificationLogs
+        .aggregate([
+          {
+            $match: {
+              userId: Number(userId),
+              method: 'scan',
+            },
+          },
+          { $sort: { createdAt: -1, id: -1 } },
+          {
+            $lookup: {
+              from: 'Medicines',
+              localField: 'medicineId',
+              foreignField: 'medicineId',
+              as: 'medicine',
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              date: '$createdAt',
+              medicineName: {
+                $ifNull: [
+                  { $arrayElemAt: ['$medicine.brandName', 0] },
+                  { $arrayElemAt: ['$medicine.genericName', 0] },
+                ],
+              },
+              result: 1,
+            },
+          },
+        ])
+        .toArray();
+
+      return entries;
+    },
+
     /** Save many checks with 1 id query + 1 insert, instead of 2 queries per log. */
     async createMany(entries) {
       if (!entries || entries.length === 0) {

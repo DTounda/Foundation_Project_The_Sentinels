@@ -44,6 +44,40 @@ describe('user profile', () => {
     expect(JSON.stringify(response.body)).not.toContain('passwordHash');
   });
 
+  it('returns only the user\'s scan history and excludes search logs', async () => {
+    const { app, repositories } = setup();
+    const alice = await registerUser(app, 'alice@example.com');
+    const jean = await registerUser(app, 'jean@example.com');
+    const older = new Date('2026-11-15T10:00:00.000Z');
+    const newer = new Date('2026-11-16T10:00:00.000Z');
+
+    repositories._logs.push(
+      { userId: alice.id, medicineId: 1, method: 'scan', result: 'verified', createdAt: older },
+      { userId: alice.id, medicineId: 2, method: 'search', result: 'verified', createdAt: newer },
+      { userId: alice.id, medicineId: 2, method: 'scan', result: 'unconfirmed', createdAt: newer },
+      { userId: jean.id, medicineId: 3, method: 'scan', result: 'unconfirmed', createdAt: newer },
+    );
+
+    expect((await request(app).get(`${API}/me/history`)).status).toBe(401);
+    const response = await request(app).get(`${API}/me/history`).set(bearer(alice.token));
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      history: [
+        {
+          date: newer.toISOString(),
+          medicineName: 'Amoxicillin 250 mg capsules',
+          result: 'unconfirmed',
+        },
+        {
+          date: older.toISOString(),
+          medicineName: 'Paracetamol 500 mg tablets',
+          result: 'verified',
+        },
+      ],
+    });
+  });
+
   it('updates account, doctor and pharmacy data', async () => {
     const { app } = setup();
     const alice = await registerUser(app, 'aline@example.com');

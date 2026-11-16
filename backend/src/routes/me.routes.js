@@ -3,6 +3,7 @@ const { Router } = require('express');
 function createMeRoutes({ meController, requireAuth }) {
   const router = Router();
   router.get('/me', requireAuth, meController.getProfile);
+  router.get('/me/history', requireAuth, meController.getHistory);
   router.put('/me/account', requireAuth, meController.updateAccount);
   router.put('/me/doctor', requireAuth, meController.updateDoctor);
   router.put('/me/pharmacy', requireAuth, meController.updatePharmacy);

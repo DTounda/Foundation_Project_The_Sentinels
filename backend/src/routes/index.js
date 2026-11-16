@@ -64,7 +64,10 @@ function buildRouter({
       reportRepository: repositories.reportRepository,
       medicineRepository: repositories.medicineRepository,
     });
-    const meService = createMeService({ userRepository: repositories.userRepository });
+    const meService = createMeService({
+      userRepository: repositories.userRepository,
+      verificationLogRepository: repositories.verificationLogRepository,
+    });
     const medicationService = createMedicationService({
       userMedicationRepository: repositories.userMedicationRepository,
     });
