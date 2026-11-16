@@ -268,13 +268,13 @@ function createFakeRepositories({
       return { ...user };
     },
 
-    async create({ fullName, email, passwordHash }) {
+    async create({ fullName, email, phone, passwordHash }) {
       const user = {
         id: users.length + 1,
         fullName,
         email,
         passwordHash,
-        phone: null,
+        phone,
         doctor: null,
         pharmacy: null,
         role: 'user',
@@ -286,6 +286,7 @@ function createFakeRepositories({
         id: user.id,
         fullName,
         email,
+        phone,
         role: 'user',
       };
     },

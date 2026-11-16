@@ -1,12 +1,17 @@
-const { parseEmail, parsePassword, parseFullName } = require('../utils/validators');
+const { parseEmail, parsePassword, parseContactName, parsePhone } = require('../utils/validators');
 
 function createAuthController({ authService }) {
   return {
     async register(req, res) {
       const body = req.body || {};
+      const firstName = parseContactName(body.firstName, 'firstName');
+      const lastName = parseContactName(body.lastName, 'lastName');
       const result = await authService.register({
-        fullName: parseFullName(body.fullName),
+        firstName,
+        lastName,
+        fullName: `${firstName} ${lastName}`,
         email: parseEmail(body.email),
+        phone: parsePhone(body.phone),
         password: parsePassword(body.password),
       });
       res.status(201).json(result);

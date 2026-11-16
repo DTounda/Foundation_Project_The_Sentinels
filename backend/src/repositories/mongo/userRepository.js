@@ -70,7 +70,7 @@ function createMongoUserRepository(db) {
       return mapUser(result);
     },
 
-    async create({ fullName, email, passwordHash }) {
+    async create({ fullName, email, phone, passwordHash }) {
       const normalizedEmail = String(email).trim().toLowerCase();
 
       try {
@@ -81,7 +81,7 @@ function createMongoUserRepository(db) {
           fullName,
           email: normalizedEmail,
           passwordHash,
-          phone: null,
+          phone,
           doctor: null,
           pharmacy: null,
           role: 'user',
@@ -94,6 +94,7 @@ function createMongoUserRepository(db) {
           id,
           fullName,
           email: normalizedEmail,
+          phone,
           role: 'user',
         };
       } catch (err) {

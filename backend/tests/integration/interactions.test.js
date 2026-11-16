@@ -16,7 +16,13 @@ function setup() {
 async function registerUser(app, email) {
   const response = await request(app)
     .post(`${API}/auth/register`)
-    .send({ fullName: 'Aline Uwase', email, password: 'Str0ngPass!' });
+    .send({
+      firstName: 'Aline',
+      lastName: 'Uwase',
+      email,
+      phone: '+250788000000',
+      password: 'Str0ngPass!',
+    });
   return { id: response.body.user.id, token: response.body.token };
 }
 

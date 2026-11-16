@@ -28,8 +28,9 @@ Send `Authorization: Bearer <token>` on protected routes.
 
 ### `POST /auth/register`
 
-Body: `{ "fullName": "Aline Uwase", "email": "aline@example.com", "password": "min 8 chars" }`
-201: `{ "user": { "id": 1, "fullName": "...", "email": "...", "role": "user" }, "token": "..." }`
+Body: `{ "firstName": "Aline", "lastName": "Uwase", "email": "aline@example.com", "phone": "+250788000000", "password": "min 8 chars" }`
+`fullName` is derived from `firstName` and `lastName` for compatibility with the profile model.
+201: `{ "user": { "id": 1, "fullName": "Aline Uwase", "firstName": "Aline", "lastName": "Uwase", "email": "aline@example.com", "phone": "+250788000000", "role": "user" }, "token": "..." }`
 409 if the email already exists. New accounts are always role `user`.
 
 ### `POST /auth/login`
