@@ -16,6 +16,8 @@ function createMeController({ meService, medicationService }) {
   return {
     getProfile: async (req, res) => res.json(await meService.getProfile(req.user.id)),
 
+    getHistory: async (req, res) => res.json({ history: await meService.getHistory(req.user.id) }),
+
     updateAccount: async (req, res) => {
       const body = req.body || {};
       const result = await meService.updateAccount(req.user.id, {

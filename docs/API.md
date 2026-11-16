@@ -194,6 +194,26 @@ All routes in this section require a bearer token. Each user can access only the
 
 `doctor` and `pharmacy` are `null` until configured. `firstName` is the first word of `fullName`; `lastName` is the remaining text, or an empty string when there is no remaining text.
 
+### `GET /me/history`
+
+Returns the authenticated user's medicine checks. Search-result logs are excluded.
+
+200:
+
+```json
+{
+  "history": [
+    {
+      "date": "2026-11-16T10:00:00.000Z",
+      "medicineName": "Paracetamol 500 mg tablets",
+      "result": "verified"
+    }
+  ]
+}
+```
+
+Entries are ordered newest first. `medicineName` is `null` when the check did not match a known medicine.
+
 ### `PUT /me/account`
 
 Body: `{ "fullName": "Aline Uwase", "email": "aline@example.com", "phone": "+250788000000" }`

@@ -189,8 +189,24 @@ function createFakeRepositories({
 
   const verificationLogRepository = {
     async create(entry) {
-      logs.push(entry);
+      const log = { ...entry };
+      Object.defineProperty(log, 'createdAt', {
+        value: entry.createdAt || new Date(),
+        enumerable: false,
+      });
+      logs.push(log);
       return logs.length;
+    },
+
+    async listByUser(userId) {
+      return logs
+        .filter((entry) => entry.userId === userId && entry.method === 'scan')
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .map((entry) => ({
+          date: entry.createdAt,
+          medicineName: medicines.find((medicine) => medicine.id === entry.medicineId)?.name || null,
+          result: entry.result,
+        }));
     },
   };
 

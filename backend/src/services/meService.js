@@ -22,10 +22,14 @@ function publicProfile(user) {
   };
 }
 
-function createMeService({ userRepository }) {
+function createMeService({ userRepository, verificationLogRepository }) {
   return {
     async getProfile(userId) {
       return publicProfile(await userRepository.findById(userId));
+    },
+
+    async getHistory(userId) {
+      return verificationLogRepository.listByUser(userId);
     },
 
     async updateAccount(userId, account) {
