@@ -13,6 +13,7 @@ export const ROUTES = {
   RESULT: 'Result',
   REPORT: 'Report',
   PHOTO_VERIFY: 'PhotoVerify',
+  HISTORY: 'History',
 
   // Old name, kept so existing code still works.
   SEARCH_SCAN: 'Home',
