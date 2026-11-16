@@ -27,6 +27,50 @@ async function registerUser(app, email) {
 }
 
 describe('user profile', () => {
+  it('deletes the account and its personal data', async () => {
+    const { app, repositories } = setup();
+    const alice = await registerUser(app, 'alice@example.com');
+    const jean = await registerUser(app, 'jean@example.com');
+
+    await request(app)
+      .post(`${API}/allergies`)
+      .set(bearer(alice.token))
+      .send({ ingredientId: 1, severity: 'severe' });
+    await request(app)
+      .post(`${API}/me/medications`)
+      .set(bearer(alice.token))
+      .send({ name: 'Warfarin' });
+    await request(app)
+      .post(`${API}/reports`)
+      .set(bearer(alice.token))
+      .send({ medicineId: 1, description: 'Packaging looks different' });
+    repositories._logs.push({
+      userId: alice.id,
+      medicineId: 1,
+      method: 'scan',
+      result: 'verified',
+      createdAt: new Date(),
+    });
+
+    const deleted = await request(app).delete(`${API}/me`).set(bearer(alice.token));
+    expect(deleted.status).toBe(204);
+    expect(deleted.text).toBe('');
+
+    expect((await request(app).get(`${API}/me`).set(bearer(alice.token))).status).toBe(401);
+    expect(
+      (await request(app).post(`${API}/auth/login`).send({
+        email: 'alice@example.com',
+        password: 'Str0ngPass!',
+      })).status,
+    ).toBe(401);
+    expect((await request(app).get(`${API}/me`).set(bearer(jean.token))).status).toBe(200);
+    expect(repositories._users).toHaveLength(1);
+    expect(repositories._allergies).toEqual([]);
+    expect(repositories._medications).toEqual([]);
+    expect(repositories._logs[0].userId).toBeNull();
+    expect(repositories._reports[0].userId).toBeNull();
+  });
+
   it('requires authentication and returns the profile shape', async () => {
     const { app } = setup();
     expect((await request(app).get(`${API}/me`)).status).toBe(401);

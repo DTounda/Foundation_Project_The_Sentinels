@@ -215,6 +215,14 @@ Returns the authenticated user's medicine checks. Search-result logs are exclude
 
 Entries are ordered newest first. `medicineName` is `null` when the check did not match a known medicine.
 
+### `DELETE /me`
+
+Permanently deletes the authenticated account, including its profile, allergy list and saved medications. Verification history and suspicious reports are retained as anonymized records with no user association.
+
+204: no response body.
+
+The endpoint uses the bearer token identity and does not accept an account ID. After deletion, the account cannot log in again and previously issued tokens cannot access protected routes.
+
 ### `PUT /me/account`
 
 Body: `{ "fullName": "Aline Uwase", "email": "aline@example.com", "phone": "+250788000000" }`

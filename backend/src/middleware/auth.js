@@ -16,23 +16,31 @@ function extractBearerToken(req) {
  *   (If an expired token were silently treated as anonymous, the user would lose their
  *   allergy alerts without knowing. Failing loudly is the safe choice.)
  */
-function createAuthMiddleware({ authService }) {
+function createAuthMiddleware({ authService, userRepository }) {
   return {
-    requireAuth(req, _res, next) {
+    async requireAuth(req, _res, next) {
       try {
         const token = extractBearerToken(req);
         if (!token) throw AppError.unauthorized();
         req.user = authService.verifyToken(token);
+        if (!(await userRepository.findById(req.user.id))) {
+          throw AppError.unauthorized('Invalid or expired token');
+        }
         next();
       } catch (err) {
         next(err);
       }
     },
 
-    optionalAuth(req, _res, next) {
+    async optionalAuth(req, _res, next) {
       try {
         const token = extractBearerToken(req);
-        if (token) req.user = authService.verifyToken(token);
+        if (token) {
+          req.user = authService.verifyToken(token);
+          if (!(await userRepository.findById(req.user.id))) {
+            throw AppError.unauthorized('Invalid or expired token');
+          }
+        }
         next();
       } catch (err) {
         next(err);

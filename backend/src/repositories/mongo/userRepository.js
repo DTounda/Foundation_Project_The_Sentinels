@@ -18,6 +18,10 @@ function mapUser(document) {
 
 function createMongoUserRepository(db) {
   const users = db.collection('Users');
+  const userAllergies = db.collection('UserAllergies');
+  const userMedications = db.collection('userMedications');
+  const verificationLogs = db.collection('VerificationLogs');
+  const suspiciousReports = db.collection('SuspiciousReports');
 
   return {
     async findByEmail(email) {
@@ -34,6 +38,27 @@ function createMongoUserRepository(db) {
       });
 
       return mapUser(document);
+    },
+
+    async deleteAccount(userId) {
+      const numericUserId = Number(userId);
+      const result = await users.deleteOne({ id: numericUserId });
+      if (result.deletedCount !== 1) return false;
+
+      await Promise.all([
+        userAllergies.deleteMany({ userId: numericUserId }),
+        userMedications.deleteMany({ userId: numericUserId }),
+        verificationLogs.updateMany(
+          { userId: numericUserId },
+          { $set: { userId: null } },
+        ),
+        suspiciousReports.updateMany(
+          { userId: numericUserId },
+          { $set: { userId: null } },
+        ),
+      ]);
+
+      return true;
     },
 
     async updateAccount(userId, { fullName, email, phone }) {
