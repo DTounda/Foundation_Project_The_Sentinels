@@ -295,7 +295,7 @@ export default function ProfileScreen({ navigation }) {
 
         <Card style={{ gap: 0, paddingVertical: 4 }}>
           <Pressable onPress={() => navigation.navigate(ROUTES.HISTORY)} accessibilityRole="button" style={[styles.discHead, styles.divider]}>
-            <Icon name="clock" size={22} color={COLORS.primary} />
+            <Icon name="pin" size={22} color={COLORS.primary} />
             <Text style={[styles.rowValue, { flex: 1 }]}>My history</Text>
             <Icon name="chevron" size={20} color={COLORS.muted} />
           </Pressable>
