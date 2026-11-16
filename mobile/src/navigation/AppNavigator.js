@@ -16,6 +16,7 @@ import SignUpScreen from '../screens/SignUpScreen';
 import ResultScreen from '../screens/ResultScreen';
 import ReportScreen from '../screens/ReportScreen';
 import PhotoVerifyScreen from '../screens/PhotoVerifyScreen';
+import HistoryScreen from '../screens/HistoryScreen';
 import Icon from '../components/Icon';
 import { ROUTES } from './routes';
 import { COLORS, FONTS } from '../constants/theme';
@@ -115,6 +116,7 @@ export default function AppNavigator() {
         <Stack.Screen name={ROUTES.SEARCH_RESULTS} component={SearchResultsScreen} />
         <Stack.Screen name={ROUTES.RESULT} component={ResultScreen} />
         <Stack.Screen name={ROUTES.PHOTO_VERIFY} component={PhotoVerifyScreen} />
+        <Stack.Screen name={ROUTES.HISTORY} component={HistoryScreen} />
         <Stack.Screen name={ROUTES.REPORT} component={ReportScreen} />
         <Stack.Screen name={ROUTES.WELCOME} component={WelcomeScreen} />
         <Stack.Screen name={ROUTES.LOGIN} component={LoginScreen} />

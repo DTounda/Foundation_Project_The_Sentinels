@@ -176,3 +176,8 @@ export async function hasConsented() {
 }
 
 export const saveConsent = () => AsyncStorage.setItem('consent.v1', 'yes');
+
+export async function getHistory() {
+  const data = await request('/me/history', { auth: true });
+  return data.history || [];
+}
