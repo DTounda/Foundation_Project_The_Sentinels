@@ -189,7 +189,12 @@ function createFakeRepositories({
 
   const verificationLogRepository = {
     async create(entry) {
-      logs.push({ ...entry, createdAt: entry.createdAt || new Date() });
+      const log = { ...entry };
+      Object.defineProperty(log, 'createdAt', {
+        value: entry.createdAt || new Date(),
+        enumerable: false,
+      });
+      logs.push(log);
       return logs.length;
     },
 
