@@ -47,7 +47,10 @@ function buildRouter({
 
   if (repositories) {
     const authService = createAuthService({ userRepository: repositories.userRepository, config });
-    const auth = createAuthMiddleware({ authService });
+    const auth = createAuthMiddleware({
+      authService,
+      userRepository: repositories.userRepository,
+    });
     const allergyService = createAllergyService(repositories);
     const verificationService = createVerificationService({ ...repositories, allergyService });
     const medicineService = createMedicineService({

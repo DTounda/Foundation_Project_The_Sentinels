@@ -16,6 +16,11 @@ function createMeController({ meService, medicationService }) {
   return {
     getProfile: async (req, res) => res.json(await meService.getProfile(req.user.id)),
 
+    deleteAccount: async (req, res) => {
+      await meService.deleteAccount(req.user.id);
+      res.status(204).end();
+    },
+
     getHistory: async (req, res) => res.json({ history: await meService.getHistory(req.user.id) }),
 
     updateAccount: async (req, res) => {

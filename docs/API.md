@@ -28,8 +28,9 @@ Send `Authorization: Bearer <token>` on protected routes.
 
 ### `POST /auth/register`
 
-Body: `{ "fullName": "Aline Uwase", "email": "aline@example.com", "password": "min 8 chars" }`
-201: `{ "user": { "id": 1, "fullName": "...", "email": "...", "role": "user" }, "token": "..." }`
+Body: `{ "firstName": "Aline", "lastName": "Uwase", "email": "aline@example.com", "phone": "+250788000000", "password": "min 8 chars" }`
+`fullName` is derived from `firstName` and `lastName` for compatibility with the profile model.
+201: `{ "user": { "id": 1, "fullName": "Aline Uwase", "firstName": "Aline", "lastName": "Uwase", "email": "aline@example.com", "phone": "+250788000000", "role": "user" }, "token": "..." }`
 409 if the email already exists. New accounts are always role `user`.
 
 ### `POST /auth/login`
@@ -213,6 +214,14 @@ Returns the authenticated user's medicine checks. Search-result logs are exclude
 ```
 
 Entries are ordered newest first. `medicineName` is `null` when the check did not match a known medicine.
+
+### `DELETE /me`
+
+Permanently deletes the authenticated account, including its profile, allergy list and saved medications. Verification history and suspicious reports are retained as anonymized records with no user association.
+
+204: no response body.
+
+The endpoint uses the bearer token identity and does not accept an account ID. After deletion, the account cannot log in again and previously issued tokens cannot access protected routes.
 
 ### `PUT /me/account`
 

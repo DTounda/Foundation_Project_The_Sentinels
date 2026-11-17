@@ -9,8 +9,22 @@ function createAuthService({ userRepository, config }) {
   // take about the same time (prevents guessing which emails have accounts).
   const dummyHash = bcrypt.hashSync('not-a-real-password', rounds);
 
+  function splitName(fullName) {
+    const parts = fullName.trim().split(/\s+/);
+    return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
+  }
+
   function publicUser(user) {
-    return { id: user.id, fullName: user.fullName, email: user.email, role: user.role };
+    const { firstName, lastName } = splitName(user.fullName);
+    return {
+      id: user.id,
+      fullName: user.fullName,
+      firstName,
+      lastName,
+      email: user.email,
+      phone: user.phone || null,
+      role: user.role,
+    };
   }
 
   function signToken(user) {
@@ -22,12 +36,18 @@ function createAuthService({ userRepository, config }) {
   }
 
   return {
-    async register({ fullName, email, password }) {
+    async register({ firstName, lastName, fullName, email, phone, password }) {
       if (await userRepository.findByEmail(email)) {
         throw AppError.conflict('An account with this email already exists');
       }
+      const resolvedFullName = fullName || `${firstName} ${lastName}`;
       const passwordHash = await bcrypt.hash(password, rounds);
-      const user = await userRepository.create({ fullName, email, passwordHash });
+      const user = await userRepository.create({
+        fullName: resolvedFullName,
+        email,
+        phone,
+        passwordHash,
+      });
       return { user: publicUser(user), token: signToken(user) };
     },
 

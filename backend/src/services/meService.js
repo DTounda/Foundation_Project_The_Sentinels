@@ -28,6 +28,11 @@ function createMeService({ userRepository, verificationLogRepository }) {
       return publicProfile(await userRepository.findById(userId));
     },
 
+    async deleteAccount(userId) {
+      const deleted = await userRepository.deleteAccount(userId);
+      if (!deleted) throw AppError.notFound('User not found');
+    },
+
     async getHistory(userId) {
       return verificationLogRepository.listByUser(userId);
     },

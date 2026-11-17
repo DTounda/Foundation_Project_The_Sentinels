@@ -5,7 +5,13 @@ const config = require('../../src/config/env');
 const { createFakeRepositories } = require('../helpers/fakeRepositories');
 
 const testConfig = { ...config, bcryptRounds: 4 };
-const account = { fullName: 'Aline Uwase', email: 'aline@example.com', password: 'Str0ngPass!' };
+const account = {
+  firstName: 'Aline',
+  lastName: 'Uwase',
+  email: 'aline@example.com',
+  phone: '+250788000000',
+  password: 'Str0ngPass!',
+};
 
 function setup() {
   const repositories = createFakeRepositories();
@@ -21,7 +27,10 @@ describe('POST /api/v1/auth/register', () => {
     expect(res.status).toBe(201);
     expect(res.body.user).toMatchObject({
       fullName: 'Aline Uwase',
+      firstName: 'Aline',
+      lastName: 'Uwase',
       email: 'aline@example.com',
+      phone: '+250788000000',
       role: 'user',
     });
     expect(typeof res.body.token).toBe('string');
@@ -29,6 +38,7 @@ describe('POST /api/v1/auth/register', () => {
     // stored as a bcrypt hash, not plain text
     expect(repositories._users[0].passwordHash).toMatch(/^\$2[aby]\$/);
     expect(repositories._users[0].passwordHash).not.toContain(account.password);
+    expect(repositories._users[0].phone).toBe(account.phone);
   });
 
   it('normalises the email and ignores a "role" sent by the client', async () => {
@@ -54,7 +64,9 @@ describe('POST /api/v1/auth/register', () => {
   it.each([
     [{ ...account, password: 'short' }, 'short password'],
     [{ ...account, email: 'nope' }, 'invalid email'],
-    [{ ...account, fullName: '' }, 'empty name'],
+    [{ ...account, firstName: '' }, 'empty first name'],
+    [{ ...account, lastName: '' }, 'empty last name'],
+    [{ ...account, phone: '' }, 'empty phone'],
     [{}, 'empty body'],
   ])('returns 400 for %j (%s)', async (body) => {
     const { app } = setup();

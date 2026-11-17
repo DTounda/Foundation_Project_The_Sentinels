@@ -60,6 +60,7 @@ export async function setStoredUser(fields) {
 // Sends the new fields plus fullName, so it works before and after the backend change.
 export async function register({ firstName, lastName, email, phone, password }) {
   const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+
   return saveSession(
     await request('/auth/register', {
       method: 'POST',

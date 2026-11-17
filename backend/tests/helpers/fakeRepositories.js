@@ -242,6 +242,26 @@ function createFakeRepositories({
       return users.find((user) => user.id === id) || null;
     },
 
+    async deleteAccount(userId) {
+      const index = users.findIndex((user) => user.id === userId);
+      if (index === -1) return false;
+
+      users.splice(index, 1);
+      for (let index = allergies.length - 1; index >= 0; index -= 1) {
+        if (allergies[index].userId === userId) allergies.splice(index, 1);
+      }
+      for (let index = medications.length - 1; index >= 0; index -= 1) {
+        if (medications[index].userId === userId) medications.splice(index, 1);
+      }
+      logs.forEach((log) => {
+        if (log.userId === userId) log.userId = null;
+      });
+      reports.forEach((report) => {
+        if (report.userId === userId) report.userId = null;
+      });
+      return true;
+    },
+
     async updateAccount(userId, { fullName, email, phone }) {
       const user = users.find((item) => item.id === userId);
       if (!user) return null;
@@ -268,13 +288,13 @@ function createFakeRepositories({
       return { ...user };
     },
 
-    async create({ fullName, email, passwordHash }) {
+    async create({ fullName, email, phone, passwordHash }) {
       const user = {
         id: users.length + 1,
         fullName,
         email,
         passwordHash,
-        phone: null,
+        phone,
         doctor: null,
         pharmacy: null,
         role: 'user',
@@ -286,6 +306,7 @@ function createFakeRepositories({
         id: user.id,
         fullName,
         email,
+        phone,
         role: 'user',
       };
     },
@@ -354,6 +375,8 @@ function createFakeRepositories({
     interactionRepository,
     _logs: logs,
     _users: users,
+    _allergies: allergies,
+    _medications: medications,
     _reports: reports,
   };
 }

@@ -27,7 +27,13 @@ describe('POST /api/v1/verify/medicine', () => {
     const { app } = setup();
     const signup = await request(app)
       .post(`${API}/auth/register`)
-      .send({ fullName: 'Aline Uwase', email: 'aline@example.com', password: 'Str0ngPass!' });
+      .send({
+        firstName: 'Aline',
+        lastName: 'Uwase',
+        email: 'aline@example.com',
+        phone: '+250788000000',
+        password: 'Str0ngPass!',
+      });
     const auth = { Authorization: `Bearer ${signup.body.token}` };
     await request(app)
       .post(`${API}/allergies`)
