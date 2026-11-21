@@ -18,6 +18,8 @@ function formatDate(value) {
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString();
 }
 
+// Displays the user's past medicine checks from the API.
+
 export default function HistoryScreen({ navigation }) {
   const [items, setItems] = useState(null);
   const [loading, setLoading] = useState(false);

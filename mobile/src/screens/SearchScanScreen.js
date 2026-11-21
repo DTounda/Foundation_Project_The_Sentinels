@@ -19,6 +19,8 @@ function initials(name) {
 }
 
 // Home: photo or search, plus a quick look at the user's safety profile.
+// Home screen: handles search, photo navigation, and safety profile counts.
+
 export default function SearchScanScreen({ navigation }) {
   const [query, setQuery] = useState('');
   const [error, setError] = useState('');
@@ -46,6 +48,7 @@ export default function SearchScanScreen({ navigation }) {
     }, []),
   );
 
+  // Validates the query and navigates to the search results.
   function handleSearch() {
     const text = query.trim();
     if (text.length < 2) {
