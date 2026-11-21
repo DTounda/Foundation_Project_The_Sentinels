@@ -1,75 +1,66 @@
-MediCheck Privacy Notice
+# MediCheck Privacy Notice
 
-1. Introduction
+## 1. Introduction
 
-MediCheck is an app that verifies medicines, allows for medicine information and alerts for allergy warnings.
+MediCheck is an application that helps users verify medicines, access medicine information, and receive allergy warnings.
 
-This Privacy Notice spells out what information does MediCheck process, why it is being processed, and how information of users is being processed.
+This Privacy Notice explains what information MediCheck processes, why it is processed, and how users' information is handled.
 
-2. Information We Collect
+## 2. Information We Collect
 
-Depending on the usage of MediCheck, the application will process:
+Depending on how users interact with MediCheck, the application may process:
 
-Account info: Full Name, e-mail.
+- **Account information:** Full name, email address, and phone number.
+- **Security information:** Information used to secure user accounts, including securely hashed passwords.
+- **Doctor and pharmacy details:** Doctor and pharmacy information provided by users.
+- **Health information:** Current medications and lists of ingredients users are allergic to, including allergy severity.
+- **Medicine verification information:** Medicine identifiers, verification methods, verification results, allergy-warning status, and timestamps.
+- **Medicine reports:** Medicine descriptions, medicine identifiers, and location information where available.
+- **Medicine photos:** Pictures submitted to the OCR service to help recognise medicine names.
 
-Security information: Information that is utilized to secure user accounts.
+## 3. How We Use Information
 
-Allergy information: list of ingredients if the user has an allergy list and their severity level.
+MediCheck uses this information to:
 
-Medicine identifiers, verification methods, verification results and allergy-warning status, along with dates and time stamps.
+- Create and manage user accounts.
+- Authenticate users.
+- Compare medicine ingredients with saved allergy information.
+- Provide allergy alerts and medicine verification results.
+- Support medication-related features.
+- Process medicine photos to identify possible medicine names.
+- Receive and manage reports about medicines.
+- Review and improve the application where appropriate.
 
-Medicine reports: Description of medicines and medicine identifiers and location information (if available).
+## 4. Protection of Information
 
-Medicine Photos: pictures submitted to the OCR service that are used to recognize the name of the medicine.
+To safeguard user data, MediCheck uses security measures such as password hashing, access controls, and restricted access to information.
 
-Information Use #3: How We Use Information
+However, no online system can guarantee absolute security.
 
-MediCheck's use of this information is to:
+## 5. Information Sharing
 
-Make and administer user accounts.
+Certain information may be processed by third-party service providers to support application features, such as the OCR provider.
 
-Authenticate users.
+The team should identify these providers and review their privacy practices to ensure appropriate protection of user information.
 
-Check for medicines ingredients with saved allergy information.
+## 6. Data Retention
 
-Create allergy alerts and medicine verification results.
+Information is retained according to the data-retention policy established by the MediCheck team and applicable legal requirements.
 
-Process medicine photos to determine possible medicine names.
+Specific retention periods for account information, allergy records, verification logs, and reports should be clearly defined and communicated to users.
 
-Take and handle reports regarding medicine.
+## 7. Account Deletion and User Privacy Requests
 
-Review and refine application (where appropriate).
+Users can delete their MediCheck account and associated data through the Profile screen in the application.
 
-How data is safeguarded.4. Protection of the information.
+Users can also contact the MediCheck team with questions or requests concerning their personal information, including requests for access, correction, or deletion, subject to applicable legal requirements.
 
-To safeguard user data, MediCheck implements security protocols like password hashing, access controls and limited access.
+## 8. Contact Information
 
-But none of the online systems can ensure absolute security.
+**Responsible organisation:** The Sentinels
 
-5. Information Sharing
+**Privacy contact:** migisholivier@gmail.com
 
-Certain information may be passed on to third party service providers for the functionality of the application, such as the OCR provider.
+## 9. Medical Disclaimer
 
-Prior to publication, the MediCheck team should determine who the providers are and what the providers' privacy practices apply to.
-
-6. Data Retention
-
-The information is stored based on the data-retention policy that has been defined by the MediCheck team and the requirements.
-
-Users should be informed of specific time periods for storing information on accounts, allergy records, logs and reports.
-
-7. User Privacy Requests
-
-Each user can contact MediCheck team if he or she has any query or request regarding his/her data.
-
-The team should establish clear procedures for requests, such as access, for correction and deletion that might apply to the team.
-
-8. Contact Information
-
-Responsible organisation(s): The sentinels
-
-Privacy contact: migisholivier@gmail.com
-
-9. Medical Disclaimer
-
-MediCheck offers medicine verification service and allergy alerts. It is not a substitute for medical advice and/or certification from an official regulatory body.
+MediCheck provides medicine verification information and allergy alerts. It is not a substitute for professional medical advice, laboratory testing, or certification from an official regulatory body.
