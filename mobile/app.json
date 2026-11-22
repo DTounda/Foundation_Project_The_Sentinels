@@ -16,7 +16,10 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.thesentinels.medicheck"
+      "package": "com.thesentinels.medicheck",
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -25,9 +28,15 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "MediCheck uses the camera to read the name on a medicine box. The photo is not stored."
+          "cameraPermission": "MediCheck uses the camera to read the name on a medicine box. The photo is not stored.",
+          "microphonePermission": false
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e0721ded-5798-4e24-91e7-3300dc551084"
+      }
+    }
   }
 }
