@@ -4,8 +4,20 @@ MediCheck is a mobile app for people in Kigali, Rwanda. You search for a medicin
 
 > MediCheck gives information only. It does not replace advice from your doctor or pharmacist, laboratory testing, or official regulatory inspection.
 
-**Live API:** https://medicheck-api-x1pd.onrender.com/api/v1/health
+## Try MediCheck
+
+- **Web app:** https://medicheck-rw.expo.app
+- **Android app (APK):** https://expo.dev/accounts/dorcase/projects/medicheck/builds/cc1b1c9f-080d-4031-b944-63e44312472d
+- **Live API:** https://medicheck-api-x1pd.onrender.com/api/v1/health
+
 The API runs on Render's free tier. After 15 minutes without use it goes to sleep, and the first request takes about 30 to 50 seconds to wake it.
+
+### Installing the Android app
+
+1. Open the APK link above on your Android phone and tap **Install**, or scan the QR code on that page.
+2. Open the downloaded file. If Android asks, allow your browser to install apps from this source.
+3. Android may block the app with a warning, because MediCheck is not yet published on the Google Play Store (publishing there requires a paid developer account). Tap **More details**, then **Install anyway**.
+4. The app only asks for camera access, to read the name on a medicine box. The photo is not stored.
 
 
 ## Features
@@ -18,6 +30,8 @@ The API runs on Render's free tier. After 15 minutes without use it goes to slee
 - **Report a product:** users can report a suspicious product, with an optional location.
 - **Pharmacies and hospitals:** a searchable directory of 1,222 health facilities, with Kimironko and Gasabo first.
 - **Account and profile:** sign-up and log-in, plus the user's doctor, regular pharmacy and current medications.
+- **History:** a list of the user's past checks and their results.
+- **Privacy:** users agree to the consent text before using the app, and can delete their account at any time. See `docs/PRIVACY_NOTICE.md` and `docs/CONSENT_TEXT.md`.
 
 ## Tech stack
 
@@ -36,7 +50,7 @@ The API runs on Render's free tier. After 15 minutes without use it goes to slee
 backend/           Express API (src/), tests (tests/), data import scripts (scripts/)
 mobile/            Expo app: screens, navigation, API client (src/)
 docs/API.md        API contract: every endpoint, request and response
-docs/              Proposal, diagrams, FDA data assessment
+docs/              Proposal, diagrams, privacy notice, consent text, FDA data assessment
 .github/workflows/ CI: backend lint and tests
 ```
 
@@ -80,9 +94,8 @@ Scan the QR code with Expo Go. The app uses the live API by default. To use a lo
 
 ```bash
 cd mobile
-npm install -g eas-cli
-eas login
-eas build -p android --profile preview
+npx eas-cli@latest login
+npx eas-cli@latest build -p android --profile preview
 ```
 
 The build runs on Expo's servers. When it finishes, it gives you a download link for the APK.
@@ -95,7 +108,12 @@ npm test
 npm run lint
 ```
 
-There are 151 backend tests (unit and integration). They use in-memory repositories, so they need no database.
+```bash
+cd mobile
+npm test
+```
+
+There are 167 automated tests, all passing: 157 backend tests (67 unit tests in 7 suites and 90 integration tests in 10 suites) and 10 mobile tests. The backend tests use in-memory repositories, so they need no database.
 
 ## Data sources
 
@@ -108,16 +126,16 @@ There are 151 backend tests (unit and integration). They use in-memory repositor
 - **Barcode scanning was replaced by photo verification**, because the Rwanda FDA register has no barcodes.
 - **"Verified" became "Registered"**, so the app never claims a pack is genuine.
 - **MySQL became MongoDB**, to model ingredients and interaction pairs. The MySQL code is kept as a fallback.
-- **Added:** accounts, the profile, interaction checks and the pharmacy directory.
-- **Moved to future work:** history of past checks, an admin view of reports, offline access, and app store releases.
+- **Added:** accounts, the profile, interaction checks, the pharmacy directory, the history of past checks, the consent screen and account deletion.
+- **Moved to future work:** an admin view of reports, offline access, and app store releases.
 
 ## Team 5: The Sentinels
 
 | Member | Role |
 | --- | --- |
 | Dorcase Lesly Nana Tounda | Project Manager |
-| Tchatchum Stephane | Lead Developer |
-| Tasnim Rosa | UI/UX Engineer |
-| Annabel Kemasuode | Frontend Developer |
+| Tchatchum Chassem Stephane | Lead Developer |
+| Tasnim Rosa Maulidi | UI/UX Engineer |
+| Annabel Ebiere Kemasuode | Frontend Developer |
 | Ephraim Mulilo | Backend Developer |
 | Olivier Migisha | Backend Developer |
