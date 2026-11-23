@@ -1,6 +1,7 @@
 const { buildResult } = require('./resultBuilder');
 const AppError = require('../utils/AppError');
 
+// Checks a medicine by id or name, adds allergy warnings and saves the check to history.
 function createVerificationService({
   medicineRepository,
   verificationLogRepository,

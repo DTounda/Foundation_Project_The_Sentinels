@@ -28,6 +28,7 @@ function findAllergyMatches(medicineIngredients, userAllergies) {
 
 function createAllergyService({ medicineRepository, ingredientRepository, userAllergyRepository }) {
   return {
+    // Returns the user's allergies that match an ingredient of this medicine.
     async getAlertsForMedicine(userId, medicineId) {
       if (!userId || !medicineId) return [];
 
@@ -66,6 +67,7 @@ function createAllergyService({ medicineRepository, ingredientRepository, userAl
       return results;
     },
 
+    // Checks one medicine against the user's allergies (used by the Result screen).
     async checkMedicine(userId, medicineId) {
       const medicine = await medicineRepository.findById(medicineId);
 
