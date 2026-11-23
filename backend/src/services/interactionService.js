@@ -37,6 +37,7 @@ function createInteractionService({
   interactionRepository,
 }) {
   return {
+    // Finds Major and Moderate interactions between this medicine and the medicines the user takes.
     async getInteractions(medicineId, userId) {
       const targetMap = await medicineRepository.getIngredientsForMedicines([medicineId]);
       const targetIngredients = targetMap.get(Number(medicineId)) || [];

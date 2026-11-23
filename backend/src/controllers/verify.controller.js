@@ -16,6 +16,7 @@ function createVerifyController({ verificationService }) {
       res.status(200).json(result);
     },
 
+    // GET /medicines/search: checks the query, then returns matching medicines with allergy warnings.
     async searchMedicines(req, res) {
       const query = parseSearchQuery(req.query.q);
       const userId = req.user ? req.user.id : null;

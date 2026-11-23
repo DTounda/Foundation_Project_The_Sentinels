@@ -31,6 +31,7 @@ function createMysqlRepositories(pool) {
   };
 }
 
+// Connects every service to its MongoDB collection; only this layer talks to the database.
 function createMongoRepositories(db) {
   return {
     medicineRepository: createMongoMedicineRepository(db),

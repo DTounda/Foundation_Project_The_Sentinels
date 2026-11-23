@@ -15,6 +15,7 @@ function classifyMedicine(medicine) {
   return medicine.verifiedStatus === 'verified' ? STATUS.VERIFIED : STATUS.UNCONFIRMED;
 }
 
+// Returns only the medicine fields shown in the app.
 function publicMedicine(medicine) {
   if (!medicine) return null;
   const { id, name, manufacturer, registrationNumber, barcode } = medicine;

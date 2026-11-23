@@ -20,6 +20,7 @@ function createPhotoService({
 }) {
   let cache = { medicines: null, loadedAt: 0 };
 
+  // Returns the medicine list for photo matching, reloading it from the database at most once an hour.
   async function getMedicinesForMatching() {
     const isStale = !cache.medicines || Date.now() - cache.loadedAt > cacheMs;
     if (!isStale) return cache.medicines;
@@ -39,6 +40,7 @@ function createPhotoService({
   }
 
   return {
+    // Reads the text on the photo with OCR, then returns the closest registered medicines for the user to choose from.
     async verifyPhoto(image) {
       let text;
       try {
