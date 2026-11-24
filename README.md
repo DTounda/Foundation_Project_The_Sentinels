@@ -9,6 +9,7 @@ MediCheck is a mobile app for people in Kigali, Rwanda. You search for a medicin
 - **Web app:** https://medicheck-rw.expo.app
 - **Android app (APK):** https://expo.dev/accounts/dorcase/projects/medicheck/builds/cc1b1c9f-080d-4031-b944-63e44312472d
 - **Live API:** https://medicheck-api-x1pd.onrender.com/api/v1/health
+- **Demo video:** https://youtu.be/WvfIY3f-rgY
 
 The API runs on Render's free tier. After 15 minutes without use it goes to sleep, and the first request takes about 30 to 50 seconds to wake it.
 
